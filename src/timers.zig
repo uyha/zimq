@@ -1,6 +1,8 @@
 const std = @import("std");
+const log = std.log.warn;
 const zmq = @import("libzmq");
 const errno = @import("errno.zig").errno;
+const strerror = @import("errno.zig").strerror;
 
 pub const Timers = opaque {
     const Self = @This();
@@ -36,7 +38,10 @@ pub const Timers = opaque {
         return switch (zmq.zmq_timers_add(self, interval, handler, arg)) {
             -1 => switch (errno()) {
                 zmq.EFAULT => AddError.TimersInvalid,
-                else => AddError.Unexpected,
+                else => |err| {
+                    log("{s}\n", .{strerror(err)});
+                    return AddError.Unexpected;
+                },
             },
             else => |id| id,
         };
@@ -48,7 +53,10 @@ pub const Timers = opaque {
             return switch (errno()) {
                 zmq.EFAULT => CancelError.TimersInvalid,
                 zmq.EINVAL => CancelError.TimerNotExist,
-                else => CancelError.Unexpected,
+                else => |err| {
+                    log("{s}\n", .{strerror(err)});
+                    return CancelError.Unexpected;
+                },
             };
         }
     }
@@ -64,7 +72,10 @@ pub const Timers = opaque {
             return switch (errno()) {
                 zmq.EFAULT => SetIntervalError.TimersInvalid,
                 zmq.EINVAL => SetIntervalError.TimerNotExist,
-                else => SetIntervalError.Unexpected,
+                else => |err| {
+                    log("{s}\n", .{strerror(err)});
+                    return SetIntervalError.Unexpected;
+                },
             };
         }
     }
@@ -75,7 +86,10 @@ pub const Timers = opaque {
             return switch (errno()) {
                 zmq.EFAULT => ResetError.TimersInvalid,
                 zmq.EINVAL => ResetError.TimerNotExist,
-                else => ResetError.Unexpected,
+                else => |err| {
+                    log("{s}\n", .{strerror(err)});
+                    return ResetError.Unexpected;
+                },
             };
         }
     }
@@ -96,7 +110,10 @@ pub const Timers = opaque {
         if (zmq.zmq_timers_execute(self) == -1) {
             return switch (errno()) {
                 zmq.EFAULT => ExecuteError.TimersInvalid,
-                else => ExecuteError.Unexpected,
+                else => |err| {
+                    log("{s}\n", .{strerror(err)});
+                    return ExecuteError.Unexpected;
+                },
             };
         }
     }

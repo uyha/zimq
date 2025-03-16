@@ -23,7 +23,7 @@ pub const Context = opaque {
             switch (errno()) {
                 zmq.EMFILE => return InitError.TooManyOpenFiles,
                 else => |err| {
-                    log("{s}: {s}\n", .{ @src().fn_name, strerror(err) });
+                    log("{s}\n", .{strerror(err)});
                     return InitError.Unexpected;
                 },
             }
@@ -40,7 +40,7 @@ pub const Context = opaque {
             switch (errno()) {
                 zmq.EFAULT => return ShutdownError.ContextInvalid,
                 else => |err| {
-                    log("{s}: {s}\n", .{ @src().fn_name, strerror(err) });
+                    log("{s}\n", .{strerror(err)});
                     return ShutdownError.Unexpected;
                 },
             }
@@ -78,7 +78,7 @@ pub const Context = opaque {
             switch (errno()) {
                 zmq.EINVAL => return SetError.OptionInvalid,
                 else => |err| {
-                    log("{s}: {s}\n", .{ @src().fn_name, strerror(err) });
+                    log("{s}\n", .{strerror(err)});
                     return SetError.Unexpected;
                 },
             }

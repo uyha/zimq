@@ -240,7 +240,10 @@ pub fn setRoutingId(self: *Self, routing_id: u32) SetRoutingIdError!void {
     switch (zmq.zmq_msg_set_routing_id(&self.message, routing_id)) {
         -1 => return switch (errno()) {
             zmq.EINVAL => SetRoutingIdError.ZeroRoutingId,
-            else => SetRoutingIdError.Unexpected,
+            else => |err| {
+                log("{s}\n", .{strerror(err)});
+                return SetRoutingIdError.Unexpected;
+            },
         },
         else => {},
     }

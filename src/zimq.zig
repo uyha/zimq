@@ -1,5 +1,6 @@
 const zmq = @import("libzmq");
 const std = @import("std");
+const log = std.log.warn;
 const c = @import("std").c;
 
 const atomic_counter = @import("atomic_counter.zig");
@@ -9,6 +10,7 @@ pub const context = @import("context.zig");
 pub const Context = context.Context;
 
 pub const errno = @import("errno.zig").errno;
+pub const strerror = @import("errno.zig").strerror;
 
 pub const Message = @import("Message.zig");
 
@@ -55,7 +57,10 @@ pub fn proxy(frontend: *Socket, backend: *Socket, capture: ?*Socket) ProxyError!
             zmq.ETERM => ProxyError.ContextInvalid,
             zmq.EINTR => ProxyError.Interrupted,
             zmq.EFAULT => ProxyError.SocketInvalid,
-            else => ProxyError.Unexpected,
+            else => |err| {
+                log("{s}\n", .{strerror(err)});
+                return ProxyError.Unexpected;
+            },
         };
     }
 }
@@ -66,7 +71,10 @@ pub fn proxySteerable(frontend: *Socket, backend: *Socket, capture: ?*Socket, co
             zmq.ETERM => ProxyError.ContextInvalid,
             zmq.EINTR => ProxyError.Interrupted,
             zmq.EFAULT => ProxyError.SocketInvalid,
-            else => ProxyError.Unexpected,
+            else => |err| {
+                log("{s}\n", .{strerror(err)});
+                return ProxyError.Unexpected;
+            },
         };
     }
 }
