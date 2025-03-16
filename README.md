@@ -2,7 +2,7 @@
 
 ## Binding functions status
 
-All the binding functions live in the `zmq` namespace.
+All the binding functions live in the `zimq` module.
 
 ### Atomic Counter
 

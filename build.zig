@@ -53,26 +53,29 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
-    const zmq = b.addModule(
-        "zmq",
+    const zimq = b.addModule(
+        "zimq",
         .{
-            .root_source_file = b.path("src/zmq.zig"),
+            .root_source_file = b.path(b.pathJoin(&.{ "src", "zimq.zig" })),
             .target = target,
             .optimize = optimize,
             .strip = strip,
         },
     );
-    zmq.addImport("libzmq", libzmq_module);
-    zmq.linkLibrary(libzmq);
+    zimq.addImport("libzmq", libzmq_module);
+    zimq.linkLibrary(libzmq);
 
     const zmq_test = b.addTest(.{
-        .name = "zmq",
-        .root_module = zmq,
+        .name = "zimq",
+        .root_module = zimq,
         .target = target,
         .optimize = optimize,
     });
     const run_zmq_test = b.addRunArtifact(zmq_test);
-    const run_zmq_test_step = b.step("zmq-test", "zmq module test");
+    const run_zmq_test_step = b.step(
+        "zimq-test",
+        "zmq module test",
+    );
     run_zmq_test_step.dependOn(&run_zmq_test.step);
 
     const main = b.addExecutable(.{
@@ -83,7 +86,7 @@ pub fn build(b: *std.Build) void {
         .strip = strip,
     });
     b.installArtifact(main);
-    main.root_module.addImport("zmq", zmq);
+    main.root_module.addImport("zimq", zimq);
     const run_main = b.addRunArtifact(main);
 
     const run_main_step = b.step("main", "Run main");

@@ -1,22 +1,22 @@
-const zmq = @import("zmq");
+const zimq = @import("zimq");
 const std = @import("std");
 
 pub fn main() !void {
-    const context: *zmq.Context = try .init();
+    const context: *zimq.Context = try .init();
     defer context.deinit();
 
-    const socket: *zmq.Socket = try .init(context, .pull);
+    const socket: *zimq.Socket = try .init(context, .pull);
     defer socket.deinit();
 
-    var message: zmq.Message = .empty();
+    var message: zimq.Message = .empty();
     defer message.deinit();
 
     try socket.bind("tcp://*:8080");
 
-    var poller: *zmq.Poller = try .init();
+    var poller: *zimq.Poller = try .init();
     try poller.add(socket, null, .in);
 
-    var events: [1]zmq.Poller.Event = .{
+    var events: [1]zimq.Poller.Event = .{
         .{ .events = .in },
     };
 
