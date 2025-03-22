@@ -1,19 +1,34 @@
+<!-- markdownlint-disable no-inline-html -->
 # Zig binding for ZeroMQ
 
-## Binding functions status
+A ZeroMQ wrapper that covers nearly 100% of ZeroMQ's API (skipped functions are
+to be deprecated or superseded).
+
+## How to use
+
+1. Run the following command to add this project as a dependency
+
+   ```sh
+   zig fetch --save git+https://github.com/uyha/zimq.git
+   ```
+
+1. In your `build.zig`, add the following
+
+   ```zig
+   const zimq = b.dependency("zimq", .{
+       .target = target,
+       .optimize = optimize,
+   });
+   // Replace `exe` with your actual library or executable
+   exe.root_module.addImport("zimq", zimq.module("zimq"));
+   ```
+
+## Binding map
 
 All the binding functions live in the `zimq` module.
 
-### Atomic Counter
-
-- [X] `zmq_atomic_counter_dec` -> `AtomicCounter.dec`
-- [X] `zmq_atomic_counter_destroy` -> `AtomicCounter.deinit`
-- [X] `zmq_atomic_counter_inc` -> `AtomicCounter.inc`
-- [X] `zmq_atomic_counter_new` -> `AtomicCounter.init`
-- [X] `zmq_atomic_counter_set` -> `AtomicCounter.set`
-- [X] `zmq_atomic_counter_value` -> `AtomicCounter.value`
-
-### Context
+<details>
+  <summary>Context</summary>
 
 - [ ] ~~`zmq_ctx_get`~~ (`zmq_ctx_get_ext` is used instead)
 - [X] `zmq_ctx_get_ext` -> `Context.get`
@@ -23,7 +38,10 @@ All the binding functions live in the `zimq` module.
 - [X] `zmq_ctx_shutdown` -> `Context.shutdown`
 - [X] `zmq_ctx_term` -> `Context.deinit`
 
-### Socket
+</details>
+
+<details>
+  <summary>Socket</summary>
 
 - [X] `zmq_bind` -> `Socket.bind`
 - [X] `zmq_close` -> `Socket.deinit`
@@ -45,7 +63,10 @@ All the binding functions live in the `zimq` module.
 - [X] `zmq_socket_monitor_pipes_stats` -> `Socket.pipesStats`
 - [X] `zmq_unbind` -> `Socket.unbind`
 
-### Message
+</details>
+
+<details>
+  <summary>Message</summary>
 
 - [X] `zmq_msg_close` -> `Message.deinit`
 - [X] `zmq_msg_copy` -> `Message.copy`
@@ -64,17 +85,18 @@ the underlying data)
 - [X] `zmq_msg_set_routing_id` -> `Message.setRoutingId`
 - [X] `zmq_msg_size` -> `Message.size`
 
-### Curve
+</details>
 
-- [X] `zmq_curve_keypair` -> `curve.keypair`
-- [X] `zmq_curve_public` -> `curve.publicKey`
-
-### Polling
+<details>
+  <summary>Polling</summary>
 
 - [X] `zmq_poll` -> `poll.poll`
 - [X] `zmq_ppoll` -> `poll.ppoll`
 
-### Poller
+</details>
+
+<details>
+  <summary>Poller</summary>
 
 - [X] `zmq_poller_new` -> `Poller.init`
 - [X] `zmq_poller_destroy` -> `Poller.deinit`
@@ -89,12 +111,18 @@ the underlying data)
 - [X] `zmq_poller_wait_all` -> `Poller.wait_all`
 - [X] `zmq_poller_fd` -> `Poller.fd`
 
-### Proxy
+</details>
+
+<details>
+  <summary>Proxy</summary>
 
 - [x] `zmq_proxy` -> `proxy`
 - [x] `zmq_proxy_steerable` -> `proxySteerable`
 
-### Timer
+</details>
+
+<details>
+  <summary>Timer</summary>
 
 - [X] `zmq_timers_new` -> `Timers.init`
 - [X] `zmq_timers_destroy` -> `Timers.deinit`
@@ -105,17 +133,48 @@ the underlying data)
 - [X] `zmq_timers_timeout` -> `Timers.timeout`
 - [X] `zmq_timers_execute` -> `Timers.execute`
 
-### Z85
+</details>
 
-- [X] `zmq_z85_encode` -> `z85.encode`
-- [X] `zmq_z85_decode` -> `z85.decode`
-
-### Runtime inspection
+<details>
+  <summary>Runtime inspection</summary>
 
 - [X] `zmq_has` -> `has`
 - [X] `zmq_version` -> `version`
 
-### Utilities
+</details>
+
+<details>
+  <summary>Atomic Counter</summary>
+
+- [X] `zmq_atomic_counter_dec` -> `AtomicCounter.dec`
+- [X] `zmq_atomic_counter_destroy` -> `AtomicCounter.deinit`
+- [X] `zmq_atomic_counter_inc` -> `AtomicCounter.inc`
+- [X] `zmq_atomic_counter_new` -> `AtomicCounter.init`
+- [X] `zmq_atomic_counter_set` -> `AtomicCounter.set`
+- [X] `zmq_atomic_counter_value` -> `AtomicCounter.value`
+
+</details>
+
+<details>
+  <summary>Utilities</summary>
 
 - [X] `zmq_errno` -> `errno`
 - [X] `zmq_strerror` -> `strerror`
+
+</details>
+
+<details>
+  <summary>Curve</summary>
+
+- [X] `zmq_curve_keypair` -> `curve.keypair`
+- [X] `zmq_curve_public` -> `curve.publicKey`
+
+</details>
+
+<details>
+  <summary>Z85</summary>
+
+- [X] `zmq_z85_encode` -> `z85.encode`
+- [X] `zmq_z85_decode` -> `z85.decode`
+
+</details>
