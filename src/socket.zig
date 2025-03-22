@@ -224,6 +224,9 @@ pub const Socket = opaque {
             return sendError(errno());
         }
     }
+    pub fn sendSlice(self: *Self, slice: []const u8, flags: SendFlags) SendError!void {
+        return self.sendBuffer(slice.ptr, slice.len, flags);
+    }
     pub fn sendBuffer(self: *Self, ptr: *const anyopaque, len: usize, flags: SendFlags) SendError!void {
         const result = zmq.zmq_send(self, ptr, len, @bitCast(flags));
         if (result == -1) {
@@ -565,6 +568,7 @@ test "send* functions" {
     defer msg.deinit();
 
     socket.sendMsg(&msg, .{}) catch {};
+    socket.sendSlice("", .{}) catch {};
     socket.sendBuffer("", 0, .{}) catch {};
     socket.sendConst("", 0, .{}) catch {};
 }
