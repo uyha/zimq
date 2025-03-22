@@ -38,7 +38,9 @@ pub fn build(b: *std.Build) void {
 
     const upstream = b.dependency("libzmq", .{});
     const translate = b.addTranslateC(.{
-        .root_source_file = upstream.path("include/zmq.h"),
+        .root_source_file = upstream.path(
+            b.pathJoin(&.{ "include", "zmq.h" }),
+        ),
         .target = target,
         .optimize = optimize,
     });
@@ -56,7 +58,9 @@ pub fn build(b: *std.Build) void {
     const zimq = b.addModule(
         "zimq",
         .{
-            .root_source_file = b.path(b.pathJoin(&.{ "src", "zimq.zig" })),
+            .root_source_file = b.path(
+                b.pathJoin(&.{ "src", "zimq.zig" }),
+            ),
             .target = target,
             .optimize = optimize,
             .strip = strip,
@@ -80,7 +84,9 @@ pub fn build(b: *std.Build) void {
 
     const main = b.addExecutable(.{
         .name = "main",
-        .root_source_file = b.path("src/main.zig"),
+        .root_source_file = b.path(
+            b.pathJoin(&.{ "src", "main.zig" }),
+        ),
         .target = target,
         .optimize = optimize,
         .strip = strip,
@@ -370,7 +376,9 @@ fn buildLibzmq(
     const upstream = b.dependency("libzmq", .{});
 
     var platform = b.addConfigHeader(.{
-        .style = .{ .cmake = upstream.path("builds/cmake/platform.hpp.in") },
+        .style = .{ .cmake = upstream.path(
+            b.pathJoin(&.{ "builds", "cmake", "platform.hpp.in" }),
+        ) },
         .include_path = "platform.hpp",
     }, .{});
     // TODO: Support all the platforms that ZeroMQ supports
