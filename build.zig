@@ -82,21 +82,22 @@ pub fn build(b: *std.Build) void {
     );
     run_zmq_test_step.dependOn(&run_zmq_test.step);
 
-    const main = b.addExecutable(.{
-        .name = "main",
-        .root_source_file = b.path(
-            b.pathJoin(&.{ "src", "main.zig" }),
-        ),
+    const zimq_example = b.addExecutable(.{
+        .name = "zimq-example",
+        .root_source_file = b.path("example.zig"),
         .target = target,
         .optimize = optimize,
         .strip = strip,
     });
-    b.installArtifact(main);
-    main.root_module.addImport("zimq", zimq);
-    const run_main = b.addRunArtifact(main);
+    b.installArtifact(zimq_example);
+    zimq_example.root_module.addImport("zimq", zimq);
+    const run_zimq_example = b.addRunArtifact(zimq_example);
 
-    const run_main_step = b.step("main", "Run main");
-    run_main_step.dependOn(&run_main.step);
+    const run_zimq_example_step = b.step(
+        "zimq-example",
+        "Run zimq example",
+    );
+    run_zimq_example_step.dependOn(&run_zimq_example.step);
 }
 
 const Poller = enum { poll, select };
