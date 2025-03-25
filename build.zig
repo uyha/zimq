@@ -69,18 +69,50 @@ pub fn build(b: *std.Build) void {
     zimq.addImport("libzmq", libzmq_module);
     zimq.linkLibrary(libzmq);
 
-    const zmq_test = b.addTest(.{
+    const lib = b.addLibrary(.{
+        .linkage = .static,
+        .name = "zimq",
+        .root_module = zimq,
+    });
+    b.installArtifact(lib);
+
+    const tests = b.addTest(.{
         .name = "zimq",
         .root_module = zimq,
         .target = target,
         .optimize = optimize,
     });
-    const run_zmq_test = b.addRunArtifact(zmq_test);
-    const run_zmq_test_step = b.step(
+    const run_tests = b.addRunArtifact(tests);
+    const test_step = b.step(
         "zimq-test",
         "zmq module test",
     );
-    run_zmq_test_step.dependOn(&run_zmq_test.step);
+    test_step.dependOn(&run_tests.step);
+
+    const docs = b.addInstallDirectory(.{
+        .install_dir = .prefix,
+        .install_subdir = "docs",
+        .source_dir = lib.getEmittedDocs(),
+    });
+    const docs_step = b.step("zimq-docs", "Emit documentation");
+    docs_step.dependOn(&docs.step);
+
+    const format = b.addFmt(.{
+        .check = true,
+        .paths = &.{
+            "src/",
+            "build.zig",
+            "build.zig.zon",
+            "example.zig",
+        },
+    });
+    const format_step = b.step("zimq-fmt", "Format project");
+    format_step.dependOn(&format.step);
+
+    const all = b.step("zimq-all", "Run all steps");
+    all.dependOn(test_step);
+    all.dependOn(docs_step);
+    all.dependOn(format_step);
 
     const zimq_example = b.addExecutable(.{
         .name = "zimq-example",
