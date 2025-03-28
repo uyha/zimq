@@ -1,6 +1,13 @@
 <!-- markdownlint-disable no-inline-html -->
 # Zig binding for ZeroMQ
 
+<!--toc:start-->
+- [Zig binding for ZeroMQ](#zig-binding-for-zeromq)
+  - [How to use](#how-to-use)
+  - [Example](#example)
+  - [Binding map](#binding-map)
+<!--toc:end-->
+
 A ZeroMQ wrapper that covers nearly 100% of ZeroMQ's API (skipped functions are
 to be deprecated or superseded).
 
