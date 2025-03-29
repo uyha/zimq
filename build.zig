@@ -418,11 +418,10 @@ fn buildLibzmq(
     switch (target.result.os.tag) {
         .linux => {},
         else => |tag| {
-            const not_supported = b.addFail(std.fmt.allocPrint(
-                b.allocator,
+            const not_supported = b.addFail(b.fmt(
                 "{s} is not supported",
                 .{@tagName(tag)},
-            ) catch @panic("OOM"));
+            ));
             platform.step.dependOn(&not_supported.step);
         },
     }
