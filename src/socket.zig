@@ -309,7 +309,7 @@ pub const Socket = opaque {
                 else => @compileError("Unrecognized type: " ++ @typeName(Value)),
             },
             .@"enum" => @intFromEnum(value),
-            .pointer => value,
+            .int, .pointer => value,
             else => @compileError("Unrecognized type: " ++ @typeName(Value)),
         };
         const RawValue = @TypeOf(raw_value);
