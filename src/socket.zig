@@ -227,6 +227,9 @@ pub const Socket = opaque {
     pub fn sendSlice(self: *Self, slice: []const u8, flags: SendFlags) SendError!void {
         return self.sendBuffer(slice.ptr, slice.len, flags);
     }
+    pub fn sendConstSlice(self: *Self, slice: []const u8, flags: SendFlags) SendError!void {
+        return self.sendConst(slice.ptr, slice.len, flags);
+    }
     pub fn sendBuffer(self: *Self, ptr: *const anyopaque, len: usize, flags: SendFlags) SendError!void {
         const result = zmq.zmq_send(self, ptr, len, @bitCast(flags));
         if (result == -1) {
@@ -569,6 +572,7 @@ test "send* functions" {
 
     socket.sendMsg(&msg, .{}) catch {};
     socket.sendSlice("", .{}) catch {};
+    socket.sendConstSlice("", .{}) catch {};
     socket.sendBuffer("", 0, .{}) catch {};
     socket.sendConst("", 0, .{}) catch {};
 }
