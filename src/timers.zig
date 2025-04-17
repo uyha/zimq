@@ -11,16 +11,14 @@ pub const Timers = opaque {
         return @ptrCast(zmq.zmq_timers_new().?);
     }
 
-    pub fn deinit(self: *?*Self) void {
-        _ = zmq.zmq_timers_destroy(self);
+    pub fn deinit(self: *Self) void {
+        var temp: ?*Self = self;
+        _ = zmq.zmq_timers_destroy(&temp);
     }
 
     test "init and deinit" {
-        const t = std.testing;
-
-        var timer: ?*Timers = Timers.init();
-        Timers.deinit(&timer);
-        try t.expectEqual(null, timer);
+        var timer: *Timers = Timers.init();
+        timer.deinit();
     }
 
     pub const TimerFn = fn (id: c_int, arg: ?*anyopaque) callconv(.c) void;
@@ -123,8 +121,8 @@ pub const Timers = opaque {
 
         const interval = 100;
 
-        var timers: ?*Timers = Timers.init();
-        defer Timers.deinit(&timers);
+        var timers: *Timers = Timers.init();
+        defer timers.deinit();
 
         const Arg = struct {
             invoked: bool = false,
@@ -143,29 +141,29 @@ pub const Timers = opaque {
             }
         }.callback;
 
-        const handle = try timers.?.add(interval, &callback, &in);
+        const handle = try timers.add(interval, &callback, &in);
         in.handle = handle;
 
-        try t.expect(try timers.?.timeout() <= interval);
+        try t.expect(try timers.timeout() <= interval);
 
         std.time.sleep((interval + 1) * 1_000_000);
-        try timers.?.reset(handle);
-        try timers.?.execute();
+        try timers.reset(handle);
+        try timers.execute();
         try t.expect(!in.invoked);
         try t.expect(!in.same);
 
-        try timers.?.setInterval(handle, interval);
+        try timers.setInterval(handle, interval);
         std.time.sleep((interval + 1) * 1_000_000);
-        try timers.?.execute();
+        try timers.execute();
         try t.expect(in.invoked);
         try t.expect(in.same);
 
         in.invoked = false;
         in.same = false;
-        try timers.?.setInterval(handle, interval);
-        try timers.?.cancel(handle);
+        try timers.setInterval(handle, interval);
+        try timers.cancel(handle);
         std.time.sleep((interval + 1) * 1_000_000);
-        try timers.?.execute();
+        try timers.execute();
         try t.expect(!in.invoked);
         try t.expect(!in.same);
     }

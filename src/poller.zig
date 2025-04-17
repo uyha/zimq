@@ -25,18 +25,14 @@ pub const Poller = opaque {
             }
         }
     }
-    pub fn deinit(self: *?*Self) void {
-        _ = zmq.zmq_poller_destroy(self);
+    pub fn deinit(self: *Self) void {
+        var temp: ?*Self = self;
+        _ = zmq.zmq_poller_destroy(&temp);
     }
 
     test "init deinit" {
-        const t = @import("std").testing;
-
-        var poller: ?*Self = try .init();
-        try t.expect(poller != null);
-
-        deinit(&poller);
-        try t.expect(poller == null);
+        var poller: *Self = try .init();
+        poller.deinit();
     }
 
     pub const AddError = error{
@@ -124,15 +120,15 @@ pub const Poller = opaque {
         const socket: *Socket = try .init(context, .sub);
         defer socket.deinit();
 
-        var poller: ?*Self = try .init();
-        defer deinit(&poller);
+        var poller: *Self = try .init();
+        defer poller.deinit();
 
-        try poller.?.add(socket, null, .in);
-        try poller.?.modify(socket, .inout);
-        try t.expectEqual(1, poller.?.size());
+        try poller.add(socket, null, .in);
+        try poller.modify(socket, .inout);
+        try t.expectEqual(1, poller.size());
 
-        try poller.?.remove(socket);
-        try t.expectEqual(0, poller.?.size());
+        try poller.remove(socket);
+        try t.expectEqual(0, poller.size());
     }
 
     pub const AddFdError = error{
@@ -215,15 +211,15 @@ pub const Poller = opaque {
     test "add, modify, remove, and size for file descriptor" {
         const t = @import("std").testing;
 
-        var poller: ?*Self = try .init();
-        defer deinit(&poller);
+        var poller: *Self = try .init();
+        defer poller.deinit();
 
-        try poller.?.add_fd(1, null, .in);
-        try poller.?.modify_fd(1, .inout);
-        try t.expectEqual(1, poller.?.size());
+        try poller.add_fd(1, null, .in);
+        try poller.modify_fd(1, .inout);
+        try t.expectEqual(1, poller.size());
 
-        try poller.?.remove_fd(1);
-        try t.expectEqual(0, poller.?.size());
+        try poller.remove_fd(1);
+        try t.expectEqual(0, poller.size());
     }
 
     pub const FdError = error{Unexpected};
@@ -244,10 +240,10 @@ pub const Poller = opaque {
     }
 
     test "fd" {
-        var poller: ?*Self = try .init();
-        defer deinit(&poller);
+        var poller: *Self = try .init();
+        defer poller.deinit();
 
-        if (poller.?.fd()) |_| {} else |_| {}
+        if (poller.fd()) |_| {} else |_| {}
     }
 
     pub const Event = extern struct {
@@ -296,13 +292,13 @@ pub const Poller = opaque {
     }
 
     test "wait and wait_all" {
-        var poller: ?*Self = try .init();
-        defer deinit(&poller);
+        var poller: *Self = try .init();
+        defer poller.deinit();
 
         var event: Event = .{ .fd = 1, .events = .in };
-        poller.?.wait(&event, 0) catch {};
+        poller.wait(&event, 0) catch {};
 
         var events: [1]Event = .{event};
-        _ = poller.?.wait_all(&events, 0) catch 0;
+        _ = poller.wait_all(&events, 0) catch 0;
     }
 };
