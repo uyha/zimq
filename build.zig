@@ -59,7 +59,7 @@ pub fn build(b: *std.Build) void {
         "zimq",
         .{
             .root_source_file = b.path(
-                b.pathJoin(&.{ "src", "zimq.zig" }),
+                b.pathJoin(&.{ "src", "root.zig" }),
             ),
             .target = target,
             .optimize = optimize,
