@@ -390,6 +390,17 @@ fn addPlatformValues(
             config_header.addValues(linux_values);
             if (target.result.isGnuLibC()) {
                 config_header.addValues(gnu_libc_values);
+
+                // glibc 2.38 introduces `strlcpy`
+                const version_range = target.result.os.versionRange();
+                const @"at_least_2.38" = version_range.linux.isAtLeast(
+                    .{ .major = 2, .minor = 38, .patch = 0 },
+                ) orelse unreachable;
+                if (@"at_least_2.38") {
+                    config_header.addValues(.{
+                        .ZMQ_HAVE_STRLCPY = {},
+                    });
+                }
             }
             if (target.result.isMuslLibC()) {
                 config_header.addValues(musl_libc_values);
