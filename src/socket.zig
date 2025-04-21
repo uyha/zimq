@@ -530,6 +530,41 @@ pub const Socket = opaque {
             else => {},
         };
     }
+
+    pub const JoinError = error{
+        /// group has more than 255 characters or the socket already joined it
+        GroupInvalid,
+        Unexpected,
+    };
+    pub fn join(self: *Self, group: [:0]const u8) !void {
+        return switch (zmq.zmq_join(self, group)) {
+            -1 => switch (errno()) {
+                zmq.EINVAL => JoinError.GroupInvalid,
+                else => |err| {
+                    log("{s}\n", .{strerror(err)});
+                    return JoinError.Unexpected;
+                },
+            },
+            else => {},
+        };
+    }
+    pub const LeaveError = error{
+        /// group has more than 255 characters or the socket has not joined it
+        GroupInvalid,
+        Unexpected,
+    };
+    pub fn leave(self: *Self, group: [:0]const u8) !void {
+        return switch (zmq.zmq_leave(self, group)) {
+            -1 => switch (errno()) {
+                zmq.EINVAL => LeaveError.GroupInvalid,
+                else => |err| {
+                    log("{s}\n", .{strerror(err)});
+                    return LeaveError.Unexpected;
+                },
+            },
+            else => {},
+        };
+    }
 };
 
 test "init and deinit" {
@@ -612,4 +647,31 @@ test "monitor" {
     try socket.monitorVersioned(.v2, "inproc://#2", .{}, .pair);
 
     socket.pipesStats() catch {};
+}
+
+test "radio and dish" {
+    const t = std.testing;
+
+    var context: *Context = try .init();
+    defer context.deinit();
+
+    const dish: *Socket = try .init(context, .dish);
+    defer dish.deinit();
+
+    const radio: *Socket = try .init(context, .radio);
+    defer radio.deinit();
+
+    try dish.bind("udp://127.0.0.1:10080");
+    try radio.connect("udp://127.0.0.1:10080");
+
+    try dish.join("somegroup");
+
+    var msg: Message = try .withSlice("hello");
+    defer msg.deinit();
+    try msg.setGroup("somegroup");
+
+    try radio.sendMsg(&msg, .{});
+    var buffer: [5]u8 = undefined;
+    try t.expectEqual(5, try dish.recv(&buffer, .{}));
+    try t.expectEqualStrings("hello", &buffer);
 }

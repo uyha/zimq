@@ -13,4 +13,6 @@ pub const Type = enum(c_int) {
     pull = zmq.ZMQ_PULL,
     pair = zmq.ZMQ_PAIR,
     peer = zmq.ZMQ_PEER,
+    radio = zmq.ZMQ_RADIO,
+    dish = zmq.ZMQ_DISH,
 };

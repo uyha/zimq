@@ -39,6 +39,10 @@ pub fn withSize(msgSize: usize) InitError!Self {
     return result;
 }
 
+pub fn withSlice(source: []const u8) InitError!Self {
+    return withBuffer(source.ptr, source.len);
+}
+
 pub fn withBuffer(ptr: *const anyopaque, len: usize) InitError!Self {
     var result = Self{ .message = undefined };
 
@@ -263,4 +267,36 @@ test "get and set routing id" {
     try t.expectEqual(SetRoutingIdError.ZeroRoutingId, msg.setRoutingId(0));
     try msg.setRoutingId(1);
     try t.expectEqual(1, msg.getRoutingId());
+}
+
+pub const SetGroupError = error{
+    /// group is longer than 255 characters
+    GroupInvalid,
+    Unexpected,
+};
+pub fn setGroup(self: *Self, group: [:0]const u8) SetGroupError!void {
+    return switch (zmq.zmq_msg_set_group(&self.message, group)) {
+        -1 => return switch (errno()) {
+            zmq.EINVAL => SetGroupError.GroupInvalid,
+            else => |err| {
+                log("{s}\n", .{strerror(err)});
+                return SetGroupError.Unexpected;
+            },
+        },
+        else => {},
+    };
+}
+pub fn getGroup(self: *Self) [:0]const u8 {
+    return std.mem.span(zmq.zmq_msg_group(&self.message));
+}
+
+test "get and set message group" {
+    const t = std.testing;
+
+    var msg: Self = .empty();
+    defer msg.deinit();
+
+    try t.expectEqualStrings("", msg.getGroup());
+    try msg.setGroup("somegroup");
+    try t.expectEqualStrings("somegroup", msg.getGroup());
 }
