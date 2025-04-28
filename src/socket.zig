@@ -675,3 +675,27 @@ test "radio and dish" {
     try t.expectEqual(5, try dish.recv(&buffer, .{}));
     try t.expectEqualStrings("hello", &buffer);
 }
+
+test "server and client" {
+    const t = std.testing;
+
+    var context: *Context = try .init();
+    defer context.deinit();
+
+    const server: *Socket = try .init(context, .server);
+    defer server.deinit();
+
+    const client: *Socket = try .init(context, .client);
+    defer client.deinit();
+
+    try server.bind("inproc://#1");
+    try client.connect("inproc://#1");
+
+    var msg: Message = try .withSlice("hello");
+    defer msg.deinit();
+
+    try client.sendMsg(&msg, .{});
+    var buffer: [5]u8 = undefined;
+    try t.expectEqual(5, try server.recv(&buffer, .{}));
+    try t.expectEqualStrings("hello", &buffer);
+}
