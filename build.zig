@@ -356,6 +356,34 @@ const linux_values = .{
     // `if_nametoindex` exits in `net/if.h`
     .HAVE_IF_NAMETOINDEX = {},
 };
+const macos_values = .{
+    // macOS uses kqueue for polling
+    .ZMQ_IOTHREAD_POLLER_USE_KQUEUE = {},
+    // `posix_memalign` exists in `stdlib.h`
+    .HAVE_POSIX_MEMALIGN = {},
+    // `fork` exists in `unistd.h`
+    .HAVE_FORK = {},
+    // `clock_gettime` exists in `time.h`
+    .HAVE_CLOCK_GETTIME = {},
+    // `mkdtemp` exists in `stdlib.h`
+    .HAVE_MKDTEMP = {},
+    // `sys/uio.h` exists
+    .ZMQ_HAVE_UIO = {},
+    // `ifaddrs.h` exists
+    .ZMQ_HAVE_IFADDRS = {},
+    // `SO_NOSIGPIPE` defined by `sys/socket.h`
+    .ZMQ_HAVE_SO_NOSIGPIPE = {},
+    // `SO_KEEPALIVE` defined by `sys/socket.h`
+    .ZMQ_HAVE_SO_KEEPALIVE = {},
+    // `strnlen` exists in `string.h`
+    .HAVE_STRNLEN = {},
+    // macOS supports IPC via Unix domain sockets
+    .ZMQ_HAVE_IPC = {},
+    // macOS has `struct sockaddr_un` in `sys/un.h`
+    .ZMQ_HAVE_STRUCT_SOCKADDR_UN = {},
+    // `strlcpy` exists in `string.h`
+    .ZMQ_HAVE_STRLCPY = {},
+};
 const gnu_libc_values = .{
     // `strlcpy` does not exit in `string.h`
     .ZMQ_HAVE_STRLCPY = null,
@@ -406,6 +434,9 @@ fn addPlatformValues(
                 config_header.addValues(musl_libc_values);
             }
         },
+        .macos => {
+            config_header.addValues(macos_values);
+        },
         else => {},
     }
 }
@@ -427,7 +458,7 @@ fn buildLibzmq(
     }, .{});
     // TODO: Support all the platforms that ZeroMQ supports
     switch (target.result.os.tag) {
-        .linux => {},
+        .linux, .macos => {},
         else => |tag| {
             const not_supported = b.addFail(b.fmt(
                 "{s} is not supported",
