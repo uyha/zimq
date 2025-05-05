@@ -114,17 +114,18 @@ test "init and deinit functions" {
     defer dataMsg.deinit();
 }
 
-pub fn data(self: *Self) ?*anyopaque {
-    return zmq.zmq_msg_data(&self.message);
+pub fn data(self: *Self) *anyopaque {
+    // The implementation's assertion will fire before it returns null, hence
+    // null is never possible.
+    return zmq.zmq_msg_data(&self.message).?;
 }
 
 pub fn size(self: *const Self) usize {
     return zmq.zmq_msg_size(&self.message);
 }
 
-pub fn slice(self: *Self) ?[]const u8 {
-    const ptr = self.data() orelse return null;
-    return @as([*]const u8, @ptrCast(ptr))[0..self.size()];
+pub fn slice(self: *Self) []const u8 {
+    return @as([*]const u8, @ptrCast(self.data()))[0..self.size()];
 }
 
 test "data, size, and slice" {
@@ -135,11 +136,11 @@ test "data, size, and slice" {
     try std.testing.expectEqual(buffer.len, msg.size());
 
     var msgSlice: []const u8 = undefined;
-    msgSlice.ptr = @ptrCast(msg.data().?);
+    msgSlice.ptr = @ptrCast(msg.data());
     msgSlice.len = msg.size();
     try std.testing.expect(std.mem.eql(u8, buffer, msgSlice));
 
-    try std.testing.expect(std.mem.eql(u8, buffer, msg.slice().?));
+    try std.testing.expect(std.mem.eql(u8, buffer, msg.slice()));
 }
 
 pub fn more(self: *const Self) bool {
