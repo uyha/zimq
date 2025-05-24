@@ -199,8 +199,7 @@ test copy {
 
     try dest.copy(&source);
 
-    // TODO: Investigate crash caused by `dest.data()`
-    // try std.testing.expectEqualStrings(source.slice(), dest.slice());
+    try std.testing.expectEqualStrings(source.slice(), dest.slice());
 }
 test move {
     var source: Self = try .withSlice("source");
