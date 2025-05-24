@@ -170,7 +170,7 @@ pub const Poller = opaque {
         FdInvalid,
         Unexpected,
     };
-    pub fn add_fd(
+    pub fn addFd(
         self: *Self,
         file: zmq.zmq_fd_t,
         data: ?*anyopaque,
@@ -199,7 +199,7 @@ pub const Poller = opaque {
         FdInvalid,
         Unexpected,
     };
-    pub fn modify_fd(
+    pub fn modifyFd(
         self: *Self,
         file: zmq.zmq_fd_t,
         events: Events,
@@ -225,7 +225,7 @@ pub const Poller = opaque {
         FdInvalid,
         Unexpected,
     };
-    pub fn remove_fd(
+    pub fn removeFd(
         self: *Self,
         file: zmq.zmq_fd_t,
     ) RemoveFdError!void {
@@ -241,35 +241,35 @@ pub const Poller = opaque {
         }
     }
 
-    test add_fd {
+    test addFd {
         const t = @import("std").testing;
 
         var poller: *Self = try .init();
         defer poller.deinit();
 
-        try poller.add_fd(1, null, .in);
+        try poller.addFd(1, null, .in);
         try t.expectEqual(1, poller.size());
     }
-    test modify_fd {
+    test modifyFd {
         const t = @import("std").testing;
 
         var poller: *Self = try .init();
         defer poller.deinit();
 
-        try poller.add_fd(1, null, .in);
-        try poller.modify_fd(1, .inout);
+        try poller.addFd(1, null, .in);
+        try poller.modifyFd(1, .inout);
         try t.expectEqual(1, poller.size());
     }
-    test remove_fd {
+    test removeFd {
         const t = @import("std").testing;
 
         var poller: *Self = try .init();
         defer poller.deinit();
 
-        try poller.add_fd(1, null, .in);
+        try poller.addFd(1, null, .in);
         try t.expectEqual(1, poller.size());
 
-        try poller.remove_fd(1);
+        try poller.removeFd(1);
         try t.expectEqual(0, poller.size());
     }
 
@@ -325,7 +325,7 @@ pub const Poller = opaque {
         }
     }
 
-    pub fn wait_all(self: *Self, events: []Event, timeout: c_long) WaitError!usize {
+    pub fn waitAll(self: *Self, events: []Event, timeout: c_long) WaitError!usize {
         return switch (zmq.zmq_poller_wait_all(self, @ptrCast(events.ptr), @intCast(events.len), timeout)) {
             -1 => switch (errno()) {
                 zmq.ENOMEM => WaitError.NoMemory,
@@ -349,11 +349,11 @@ pub const Poller = opaque {
         var event: Event = .{ .fd = 1, .events = .in };
         poller.wait(&event, 0) catch {};
     }
-    test wait_all {
+    test waitAll {
         var poller: *Self = try .init();
         defer poller.deinit();
 
         var events: [1]Event = .{undefined};
-        _ = poller.wait_all(&events, 0) catch {};
+        _ = poller.waitAll(&events, 0) catch {};
     }
 };
