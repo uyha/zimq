@@ -42,7 +42,29 @@ pub fn decode(dest: []u8, string: [:0]const u8) DecodeError!usize {
     }
 }
 
-test "encode and decode" {
+test encode {
+    const std = @import("std");
+    const t = std.testing;
+
+    var small_buffer: [4:0]u8 = .{ 0, 0, 0, 0 };
+    var buffer: [256:0]u8 = undefined;
+    buffer[256] = 0;
+
+    try t.expectEqual(EncodeError.StringInvalid, encode(buffer[0..], "1234a"));
+    try t.expectEqual(EncodeError.BufferTooSmall, encode(small_buffer[0..], "1234"));
+
+    try t.expectEqual(DecodeError.StringInvalid, decode(buffer[0..], "1345"));
+    try t.expectEqual(DecodeError.BufferTooSmall, decode(buffer[0..1], "12345"));
+
+    const content = "1234";
+    const encode_len = try encode(buffer[0..], content);
+    try t.expectEqual(5, encode_len);
+
+    var decode_buffer: [4]u8 = undefined;
+    try t.expectEqual(4, decode(&decode_buffer, buffer[0..encode_len :0]));
+    try t.expect(std.mem.eql(u8, &decode_buffer, content));
+}
+test decode {
     const std = @import("std");
     const t = std.testing;
 

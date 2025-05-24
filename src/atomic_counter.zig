@@ -10,7 +10,12 @@ pub const AtomicCounter = opaque {
         zmq.zmq_atomic_counter_destroy(@ptrCast(self));
     }
 
-    test "init deinit" {
+    test init {
+        var aCounter: *Self = init().?;
+        defer deinit(&aCounter);
+    }
+
+    test deinit {
         var aCounter: *Self = init().?;
         defer deinit(&aCounter);
     }
@@ -25,19 +30,43 @@ pub const AtomicCounter = opaque {
         return zmq.zmq_atomic_counter_inc(self);
     }
 
-    /// Return if the counter has greater than 1 after decrement
+    /// Return if the counter is greater than 1 after decrement
     pub fn dec(self: *Self) bool {
         return zmq.zmq_atomic_counter_dec(self) != 0;
     }
 
-    test "set inc dec value" {
+    test value {
+        const t = @import("std").testing;
+        var counter: *Self = init().?;
+        defer deinit(&counter);
+
+        try t.expectEqual(0, counter.value());
+    }
+    test set {
         const t = @import("std").testing;
         var counter: *Self = init().?;
         defer deinit(&counter);
 
         counter.set(1);
         try t.expectEqual(1, counter.value());
-        try t.expectEqual(1, counter.inc());
+    }
+    test inc {
+        const t = @import("std").testing;
+        var counter: *Self = init().?;
+        defer deinit(&counter);
+
+        try t.expectEqual(0, counter.inc());
+        try t.expectEqual(1, counter.value());
+    }
+    test dec {
+        const t = @import("std").testing;
+        var counter: *Self = init().?;
+        defer deinit(&counter);
+
+        counter.set(1);
+        try t.expect(!counter.dec());
+        try t.expectEqual(0, counter.value());
         try t.expect(counter.dec());
+        try t.expectEqual(-1, counter.value());
     }
 };

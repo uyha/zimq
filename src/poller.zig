@@ -30,7 +30,7 @@ pub const Poller = opaque {
         _ = zmq.zmq_poller_destroy(&temp);
     }
 
-    test "init deinit" {
+    test init {
         var poller: *Self = try .init();
         poller.deinit();
     }
@@ -109,7 +109,24 @@ pub const Poller = opaque {
         return @intCast(result);
     }
 
-    test "add, modify, remove, and size" {
+    test add {
+        const t = @import("std").testing;
+
+        const Context = @import("context.zig").Context;
+
+        const context: *Context = try .init();
+        defer context.deinit();
+
+        const socket: *Socket = try .init(context, .sub);
+        defer socket.deinit();
+
+        var poller: *Self = try .init();
+        defer poller.deinit();
+
+        try poller.add(socket, null, .in);
+        try t.expectEqual(1, poller.size());
+    }
+    test modify {
         const t = @import("std").testing;
 
         const Context = @import("context.zig").Context;
@@ -126,7 +143,23 @@ pub const Poller = opaque {
         try poller.add(socket, null, .in);
         try poller.modify(socket, .inout);
         try t.expectEqual(1, poller.size());
+    }
+    test remove {
+        const t = @import("std").testing;
 
+        const Context = @import("context.zig").Context;
+
+        const context: *Context = try .init();
+        defer context.deinit();
+
+        const socket: *Socket = try .init(context, .sub);
+        defer socket.deinit();
+
+        var poller: *Self = try .init();
+        defer poller.deinit();
+
+        try poller.add(socket, null, .in);
+        try t.expectEqual(1, poller.size());
         try poller.remove(socket);
         try t.expectEqual(0, poller.size());
     }
@@ -208,7 +241,16 @@ pub const Poller = opaque {
         }
     }
 
-    test "add, modify, remove, and size for file descriptor" {
+    test add_fd {
+        const t = @import("std").testing;
+
+        var poller: *Self = try .init();
+        defer poller.deinit();
+
+        try poller.add_fd(1, null, .in);
+        try t.expectEqual(1, poller.size());
+    }
+    test modify_fd {
         const t = @import("std").testing;
 
         var poller: *Self = try .init();
@@ -216,6 +258,15 @@ pub const Poller = opaque {
 
         try poller.add_fd(1, null, .in);
         try poller.modify_fd(1, .inout);
+        try t.expectEqual(1, poller.size());
+    }
+    test remove_fd {
+        const t = @import("std").testing;
+
+        var poller: *Self = try .init();
+        defer poller.deinit();
+
+        try poller.add_fd(1, null, .in);
         try t.expectEqual(1, poller.size());
 
         try poller.remove_fd(1);
@@ -239,7 +290,7 @@ pub const Poller = opaque {
         return result;
     }
 
-    test "fd" {
+    test fd {
         var poller: *Self = try .init();
         defer poller.deinit();
 
@@ -291,14 +342,18 @@ pub const Poller = opaque {
         };
     }
 
-    test "wait and wait_all" {
+    test wait {
         var poller: *Self = try .init();
         defer poller.deinit();
 
         var event: Event = .{ .fd = 1, .events = .in };
         poller.wait(&event, 0) catch {};
+    }
+    test wait_all {
+        var poller: *Self = try .init();
+        defer poller.deinit();
 
-        var events: [1]Event = .{event};
-        _ = poller.wait_all(&events, 0) catch 0;
+        var events: [1]Event = .{undefined};
+        _ = poller.wait_all(&events, 0) catch {};
     }
 };

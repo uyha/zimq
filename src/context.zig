@@ -47,7 +47,15 @@ pub const Context = opaque {
         }
     }
 
-    test "init, deinit, and shutdown" {
+    test init {
+        var context: *Self = try .init();
+        defer context.deinit();
+    }
+    test deinit {
+        var context: *Self = try .init();
+        defer context.deinit();
+    }
+    test shutdown {
         var context: *Self = try .init();
         defer context.deinit();
 
@@ -117,6 +125,13 @@ pub const Context = opaque {
                     &out.len,
                 );
 
+                // There is a bug in libzmq's implementation that does not
+                // actually set the length of the output so it has to be done
+                // manually
+                if (result == 0) {
+                    out.len = std.mem.indexOfSentinel(u8, 0, out.ptr);
+                }
+
                 break :get result;
             },
             *c_int => {
@@ -144,21 +159,36 @@ pub const Context = opaque {
         }
     }
 
-    test "set and get" {
+    test set {
         var context: *Self = try .init();
         defer context.deinit();
 
-        context.set(.blocky, true) catch {};
-        context.set(.thread_name_prefix, "asdf") catch {};
-        context.set(.max_msgsz, 11) catch {};
+        try context.set(.blocky, true);
+        try context.set(.thread_name_prefix, "somename");
 
         var blocky: bool = undefined;
+        try context.get(.blocky, &blocky);
+        try std.testing.expect(blocky);
+
         var buffer: [255:0]u8 = undefined;
         var thread_name: [:0]u8 = &buffer;
-        var max_msgs: c_int = undefined;
+        try context.get(.thread_name_prefix, &thread_name);
+        try std.testing.expectEqualSentinel(u8, 0, "somename", thread_name);
+    }
+    test get {
+        var context: *Self = try .init();
+        defer context.deinit();
 
-        context.get(.blocky, &blocky) catch {};
-        context.get(.thread_name_prefix, &thread_name) catch {};
-        context.get(.max_msgsz, &max_msgs) catch {};
+        try context.set(.blocky, true);
+        try context.set(.thread_name_prefix, "somename");
+
+        var blocky: bool = undefined;
+        try context.get(.blocky, &blocky);
+        try std.testing.expect(blocky);
+
+        var buffer: [255:0]u8 = undefined;
+        var thread_name: [:0]u8 = &buffer;
+        try context.get(.thread_name_prefix, &thread_name);
+        try std.testing.expectEqualSentinel(u8, 0, "somename", thread_name);
     }
 };

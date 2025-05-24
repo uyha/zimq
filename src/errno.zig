@@ -15,6 +15,6 @@ pub fn strerror(err: c_int) [:0]const u8 {
     return ptr[0..len :0];
 }
 
-test "strerror" {
+test strerror {
     try std.testing.expect(std.mem.eql(u8, strerror(1), "Operation not permitted"));
 }

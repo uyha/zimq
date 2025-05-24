@@ -67,7 +67,7 @@ comptime {
     std.debug.assert(@sizeOf(std.posix.system.sigset_t) == @sizeOf(zmq.sigset_t));
 }
 
-test "poll" {
+test poll {
     var items: [1]Item = .{.{}};
     _ = poll(&items, 0) catch {};
 

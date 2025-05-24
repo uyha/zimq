@@ -16,7 +16,7 @@ pub const Timers = opaque {
         _ = zmq.zmq_timers_destroy(&temp);
     }
 
-    test "init and deinit" {
+    test init {
         var timer: *Timers = Timers.init();
         timer.deinit();
     }

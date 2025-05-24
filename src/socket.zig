@@ -50,6 +50,14 @@ pub const Socket = opaque {
         _ = zmq.zmq_close(self);
     }
 
+    test init {
+        var context: *Context = try .init();
+        defer context.deinit();
+
+        var socket: *Socket = try .init(context, .pull);
+        defer socket.deinit();
+    }
+
     pub const ConnectError = error{
         EndpointInvalid,
         TransportNotSupported,
@@ -78,6 +86,17 @@ pub const Socket = opaque {
         };
     }
 
+    test connect {
+        var context: *Context = try .init();
+        defer context.deinit();
+
+        var socket: *Socket = try .init(context, .pull);
+        defer socket.deinit();
+
+        socket.connect("ipc://asdf") catch {};
+        socket.disconnect("ipc://asdf") catch {};
+    }
+
     pub const ConnectPeerError = ConnectError || error{SocketNotPeer};
     pub fn connectPeer(self: *Self, endpoint: [:0]const u8) ConnectPeerError!void {
         if (zmq.zmq_connect_peer(self, endpoint.ptr) != -1) {
@@ -97,6 +116,17 @@ pub const Socket = opaque {
                 return ConnectPeerError.Unexpected;
             },
         };
+    }
+
+    test connectPeer {
+        var context: *Context = try .init();
+        defer context.deinit();
+
+        var socket: *Socket = try .init(context, .pull);
+        defer socket.deinit();
+
+        socket.connectPeer("ipc://asdf") catch {};
+        socket.disconnect("ipc://asdf") catch {};
     }
 
     pub const DisconnectError = error{
@@ -156,6 +186,16 @@ pub const Socket = opaque {
         };
     }
 
+    test bind {
+        var context: *Context = try .init();
+        defer context.deinit();
+
+        var socket: *Socket = try .init(context, .pull);
+        defer socket.deinit();
+
+        try socket.bind("inproc://#1");
+    }
+
     pub const UnbindError = error{
         EndpointInvalid,
         ContextInvalid,
@@ -177,6 +217,16 @@ pub const Socket = opaque {
                 return UnbindError.Unexpected;
             },
         };
+    }
+    test unbind {
+        var context: *Context = try .init();
+        defer context.deinit();
+
+        var socket: *Socket = try .init(context, .pull);
+        defer socket.deinit();
+
+        try socket.bind("inproc://#1");
+        try socket.unbind("inproc://#1");
     }
 
     pub const SendFlags = packed struct(c_int) {
@@ -224,23 +274,75 @@ pub const Socket = opaque {
             return sendError(errno());
         }
     }
+    test sendMsg {
+        var context: *Context = try .init();
+        defer context.deinit();
+
+        var socket: *Socket = try .init(context, .pull);
+        defer socket.deinit();
+
+        var msg: Message = .empty();
+        defer msg.deinit();
+
+        socket.sendMsg(&msg, .{}) catch {};
+    }
+
     pub fn sendSlice(self: *Self, slice: []const u8, flags: SendFlags) SendError!void {
         return self.sendBuffer(slice.ptr, slice.len, flags);
     }
+    test sendSlice {
+        var context: *Context = try .init();
+        defer context.deinit();
+
+        var socket: *Socket = try .init(context, .pull);
+        defer socket.deinit();
+
+        socket.sendSlice("", .{}) catch {};
+    }
+
     pub fn sendConstSlice(self: *Self, slice: []const u8, flags: SendFlags) SendError!void {
         return self.sendConst(slice.ptr, slice.len, flags);
     }
+    test sendConstSlice {
+        var context: *Context = try .init();
+        defer context.deinit();
+
+        var socket: *Socket = try .init(context, .pull);
+        defer socket.deinit();
+
+        socket.sendConstSlice("", .{}) catch {};
+    }
+
     pub fn sendBuffer(self: *Self, ptr: *const anyopaque, len: usize, flags: SendFlags) SendError!void {
         const result = zmq.zmq_send(self, ptr, len, @bitCast(flags));
         if (result == -1) {
             return sendError(errno());
         }
     }
+    test sendBuffer {
+        var context: *Context = try .init();
+        defer context.deinit();
+
+        var socket: *Socket = try .init(context, .pull);
+        defer socket.deinit();
+
+        socket.sendBuffer("", 0, .{}) catch {};
+    }
+
     pub fn sendConst(self: *Self, ptr: *const anyopaque, len: usize, flags: SendFlags) SendError!void {
         const result = zmq.zmq_send_const(self, ptr, len, @bitCast(flags));
         if (result == -1) {
             return sendError(errno());
         }
+    }
+    test sendConst {
+        var context: *Context = try .init();
+        defer context.deinit();
+
+        var socket: *Socket = try .init(context, .pull);
+        defer socket.deinit();
+
+        socket.sendConst("", 0, .{}) catch {};
     }
 
     pub const RecvFlags = packed struct(c_int) {
@@ -279,6 +381,19 @@ pub const Socket = opaque {
         };
     }
 
+    test recv {
+        var context: *Context = try .init();
+        defer context.deinit();
+
+        var socket: *Socket = try .init(context, .pull);
+        defer socket.deinit();
+
+        var buffer: [16]u8 = undefined;
+        var slice: []u8 = &buffer;
+
+        slice.len = socket.recv(slice, .noblock) catch 0;
+    }
+
     pub const RecvMsgError = RecvError || error{MessageInvalid};
     pub fn recvMsg(self: *Self, msg: *Message, flags: RecvFlags) RecvMsgError!usize {
         return result: switch (zmq.zmq_recvmsg(self, &msg.message, @bitCast(flags))) {
@@ -291,6 +406,19 @@ pub const Socket = opaque {
             },
             else => |size| @intCast(size),
         };
+    }
+
+    test recvMsg {
+        var context: *Context = try .init();
+        defer context.deinit();
+
+        var socket: *Socket = try .init(context, .pull);
+        defer socket.deinit();
+
+        var msg: Message = .empty();
+        defer msg.deinit();
+
+        _ = socket.recvMsg(&msg, .noblock) catch {};
     }
 
     pub const SetError = error{
@@ -565,89 +693,41 @@ pub const Socket = opaque {
             else => {},
         };
     }
+
+    test monitor {
+        const t = std.testing;
+
+        var context: *Context = try .init();
+        defer context.deinit();
+
+        var socket: *Socket = try .init(context, .pull);
+        defer socket.deinit();
+
+        try t.expectEqual({}, socket.monitor("inproc://#1", .{}));
+        try t.expectEqual(Socket.MonitorError.EndpointInvalid, socket.monitor("", .{}));
+        try t.expectEqual(Socket.MonitorError.ProtocolNotSupported, socket.monitor("tpc://asdf", .{}));
+
+        socket.pipesStats() catch {};
+    }
+    test monitorVersioned {
+        const t = std.testing;
+
+        var context: *Context = try .init();
+        defer context.deinit();
+
+        var socket: *Socket = try .init(context, .pull);
+        defer socket.deinit();
+
+        // The following test is unstable due to ZeroMQ can be slow in creating and binding
+        // the socket, it should return a AddressInUse error
+        _ = socket.monitorVersioned(.v2, "inproc://#1", .{}, .pair) catch {};
+        try t.expectEqual(Socket.MonitorError.EndpointInvalid, socket.monitor("", .{}));
+        try t.expectEqual(Socket.MonitorError.ProtocolNotSupported, socket.monitor("tpc://asdf", .{}));
+        try socket.monitorVersioned(.v2, "inproc://#2", .{}, .pair);
+
+        socket.pipesStats() catch {};
+    }
 };
-
-test "init and deinit" {
-    var context: *Context = try .init();
-    defer context.deinit();
-
-    var socket: *Socket = try .init(context, .pull);
-    defer socket.deinit();
-}
-test "connect and disconnect" {
-    var context: *Context = try .init();
-    defer context.deinit();
-
-    var socket: *Socket = try .init(context, .pull);
-    defer socket.deinit();
-
-    socket.connect("ipc://asdf") catch {};
-    socket.connectPeer("ipc://asdf") catch {};
-    socket.disconnect("ipc://asdf") catch {};
-}
-test "bind and unbind" {
-    var context: *Context = try .init();
-    defer context.deinit();
-
-    var socket: *Socket = try .init(context, .pull);
-    defer socket.deinit();
-
-    socket.bind("ipc://") catch {};
-    socket.unbind("ipc://") catch {};
-}
-test "send* functions" {
-    var context: *Context = try .init();
-    defer context.deinit();
-
-    var socket: *Socket = try .init(context, .pull);
-    defer socket.deinit();
-
-    var msg: Message = .empty();
-    defer msg.deinit();
-
-    socket.sendMsg(&msg, .{}) catch {};
-    socket.sendSlice("", .{}) catch {};
-    socket.sendConstSlice("", .{}) catch {};
-    socket.sendBuffer("", 0, .{}) catch {};
-    socket.sendConst("", 0, .{}) catch {};
-}
-test "recv* functions" {
-    var context: *Context = try .init();
-    defer context.deinit();
-
-    var socket: *Socket = try .init(context, .pull);
-    defer socket.deinit();
-
-    var buffer: [16]u8 = undefined;
-    var slice: []u8 = &buffer;
-    var msg: Message = .empty();
-    defer msg.deinit();
-
-    slice.len = socket.recv(slice, .noblock) catch 0;
-    _ = socket.recvMsg(&msg, .noblock) catch {};
-}
-test "monitor" {
-    const t = std.testing;
-
-    var context: *Context = try .init();
-    defer context.deinit();
-
-    var socket: *Socket = try .init(context, .pull);
-    defer socket.deinit();
-
-    try t.expectEqual({}, socket.monitor("inproc://#1", .{}));
-    try t.expectEqual(Socket.MonitorError.EndpointInvalid, socket.monitor("", .{}));
-    try t.expectEqual(Socket.MonitorError.ProtocolNotSupported, socket.monitor("tpc://asdf", .{}));
-
-    // The following test is unstable due to ZeroMQ can be slow in creating and binding
-    // the socket, it should return a AddressInUse error
-    _ = socket.monitorVersioned(.v2, "inproc://#1", .{}, .pair) catch {};
-    try t.expectEqual(Socket.MonitorError.EndpointInvalid, socket.monitor("", .{}));
-    try t.expectEqual(Socket.MonitorError.ProtocolNotSupported, socket.monitor("tpc://asdf", .{}));
-    try socket.monitorVersioned(.v2, "inproc://#2", .{}, .pair);
-
-    socket.pipesStats() catch {};
-}
 
 test "radio and dish" {
     const t = std.testing;
