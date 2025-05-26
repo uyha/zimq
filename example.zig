@@ -19,5 +19,5 @@ pub fn main() !void {
     var buffer: zimq.Message = .empty();
     _ = try pull.recvMsg(&buffer, .{});
 
-    std.debug.print("{s}\n", .{buffer.slice().?});
+    std.debug.print("{s}\n", .{buffer.slice()});
 }
