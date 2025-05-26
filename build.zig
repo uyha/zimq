@@ -109,27 +109,28 @@ pub fn build(b: *std.Build) void {
     const format_step = b.step("fmt", "Format project");
     format_step.dependOn(&format.step);
 
-    const all = b.step("all", "Run all steps");
-    all.dependOn(test_step);
-    all.dependOn(docs_step);
-    all.dependOn(format_step);
-
-    const zimq_example = b.addExecutable(.{
+    const example = b.addExecutable(.{
         .name = "example",
         .root_source_file = b.path("example.zig"),
         .target = target,
         .optimize = optimize,
         .strip = strip,
     });
-    b.installArtifact(zimq_example);
-    zimq_example.root_module.addImport("zimq", zimq);
-    const run_zimq_example = b.addRunArtifact(zimq_example);
+    b.installArtifact(example);
+    example.root_module.addImport("zimq", zimq);
+    const run_example = b.addRunArtifact(example);
 
-    const run_zimq_example_step = b.step(
+    const run_example_step = b.step(
         "example",
         "Run zimq example",
     );
-    run_zimq_example_step.dependOn(&run_zimq_example.step);
+    run_example_step.dependOn(&run_example.step);
+
+    const all = b.step("all", "Run all steps");
+    all.dependOn(test_step);
+    all.dependOn(docs_step);
+    all.dependOn(format_step);
+    all.dependOn(run_example_step);
 }
 
 const Poller = enum { poll, select };
