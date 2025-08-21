@@ -79,8 +79,6 @@ pub fn build(b: *std.Build) void {
     const tests = b.addTest(.{
         .name = "zimq",
         .root_module = zimq,
-        .target = target,
-        .optimize = optimize,
     });
     const run_tests = b.addRunArtifact(tests);
     const test_step = b.step(
@@ -111,10 +109,12 @@ pub fn build(b: *std.Build) void {
 
     const example = b.addExecutable(.{
         .name = "example",
-        .root_source_file = b.path("example.zig"),
-        .target = target,
-        .optimize = optimize,
-        .strip = strip,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("example.zig"),
+            .target = target,
+            .optimize = optimize,
+            .strip = strip,
+        }),
     });
     b.installArtifact(example);
     example.root_module.addImport("zimq", zimq);
@@ -470,11 +470,13 @@ fn buildLibzmq(
     }
     addPlatformValues(platform, target, options);
 
-    const library = b.addStaticLibrary(.{
+    const library = b.addLibrary(.{
         .name = "zmq",
-        .target = target,
-        .optimize = optimize,
-        .strip = strip,
+        .root_module = b.createModule(.{
+            .target = target,
+            .optimize = optimize,
+            .strip = strip,
+        }),
     });
     library.linkLibC();
     library.linkLibCpp();

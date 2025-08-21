@@ -146,14 +146,14 @@ pub const Timers = opaque {
 
         try t.expect(try timers.timeout() <= interval);
 
-        std.time.sleep((interval + 1) * 1_000_000);
+        std.Thread.sleep((interval + 1) * 1_000_000);
         try timers.reset(handle);
         try timers.execute();
         try t.expect(!in.invoked);
         try t.expect(!in.same);
 
         try timers.setInterval(handle, interval);
-        std.time.sleep((interval + 1) * 1_000_000);
+        std.Thread.sleep((interval + 1) * 1_000_000);
         try timers.execute();
         try t.expect(in.invoked);
         try t.expect(in.same);
@@ -162,7 +162,7 @@ pub const Timers = opaque {
         in.same = false;
         try timers.setInterval(handle, interval);
         try timers.cancel(handle);
-        std.time.sleep((interval + 1) * 1_000_000);
+        std.Thread.sleep((interval + 1) * 1_000_000);
         try timers.execute();
         try t.expect(!in.invoked);
         try t.expect(!in.same);

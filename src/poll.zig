@@ -71,6 +71,6 @@ test poll {
     var items: [1]Item = .{.{}};
     _ = poll(&items, 0) catch {};
 
-    const sigmask: std.posix.system.sigset_t align(sigset_align) = std.posix.system.empty_sigset;
+    const sigmask: std.posix.sigset_t align(sigset_align) = std.posix.sigemptyset();
     _ = ppoll(&items, 0, &sigmask) catch {};
 }
