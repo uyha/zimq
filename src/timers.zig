@@ -134,7 +134,7 @@ pub const Timers = opaque {
 
         const callback = struct {
             fn callback(id: c_int, arg: ?*anyopaque) callconv(.c) void {
-                const actual_arg: *Arg = @alignCast(@ptrCast(arg.?));
+                const actual_arg: *Arg = @ptrCast(@alignCast(arg.?));
 
                 actual_arg.invoked = true;
                 actual_arg.same = actual_arg.handle.? == id;

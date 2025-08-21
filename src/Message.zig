@@ -92,15 +92,15 @@ test withData {
     const free = struct {
         pub fn free(data_ptr: ?*anyopaque, hint: ?*anyopaque) callconv(.c) void {
             if (data_ptr) |ptr| {
-                const allocator: *std.mem.Allocator = @alignCast(@ptrCast(hint));
-                const actual_data: *std.ArrayListUnmanaged(u8) = @alignCast(@ptrCast(ptr));
+                const allocator: *std.mem.Allocator = @ptrCast(@alignCast(hint));
+                const actual_data: *std.ArrayList(u8) = @ptrCast(@alignCast(ptr));
                 actual_data.deinit(allocator.*);
             }
         }
     }.free;
     const allocator = std.testing.allocator;
 
-    var selfManagedData = try std.ArrayListUnmanaged(u8).initCapacity(allocator, 16);
+    var selfManagedData = try std.ArrayList(u8).initCapacity(allocator, 16);
     try selfManagedData.resize(allocator, 16);
     var dataMsg: Self = try .withData(
         &selfManagedData,
