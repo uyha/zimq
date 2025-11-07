@@ -7,15 +7,15 @@ const Context = @import("context.zig").Context;
 const Message = @import("Message.zig");
 
 const opt = @import("socket/option.zig");
-const SetOption = opt.SetOption;
-const SetOptionType = opt.SetOptionType;
-const GetOption = opt.GetOption;
-const GetOptionType = opt.GetOptionType;
-const Mechanism = opt.Mechanism;
-const ReconnectStop = opt.ReconnectStop;
-const RouterNotify = opt.RouterNotify;
-const NormMode = opt.NormMode;
-const PrincipalNameType = opt.PrincipalNameType;
+pub const SetOption = opt.SetOption;
+pub const SetOptionType = opt.SetOptionType;
+pub const GetOption = opt.GetOption;
+pub const GetOptionType = opt.GetOptionType;
+pub const Mechanism = opt.Mechanism;
+pub const ReconnectStop = opt.ReconnectStop;
+pub const RouterNotify = opt.RouterNotify;
+pub const NormMode = opt.NormMode;
+pub const PrincipalNameType = opt.PrincipalNameType;
 
 pub const Type = @import("socket/type.zig").Type;
 
