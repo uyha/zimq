@@ -201,7 +201,7 @@ the underlying data)
 <details>
   <summary>Curve</summary>
 
-- [X] `zmq_curve_keypair` -> `curve.keypair`
+- [X] `zmq_curve_keypair` -> `curve.keyPair`
 - [X] `zmq_curve_public` -> `curve.publicKey`
 
 </details>

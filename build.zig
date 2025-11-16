@@ -41,13 +41,7 @@ pub fn build(b: *std.Build) void {
         .libsodium = libsodium,
     };
 
-    const libzmq = buildLibzmq(
-        b,
-        target,
-        optimize,
-        strip,
-        options,
-    );
+    const libzmq = buildLibzmq(b, target, optimize, strip, options);
 
     const upstream = b.dependency("libzmq", .{});
     const translate = b.addTranslateC(.{
@@ -81,6 +75,11 @@ pub fn build(b: *std.Build) void {
     );
     zimq.addImport("libzmq", libzmq_module);
     zimq.linkLibrary(libzmq);
+
+    const config = b.addOptions();
+    zimq.addOptions("config", config);
+
+    config.addOption(bool, "curve", curve);
 
     const lib = b.addLibrary(.{
         .linkage = .static,
@@ -503,7 +502,10 @@ fn buildLibzmq(
             "libsodium",
             .{ .shared = false, .static = true },
         )) |sodium| {
-            platform.addValues(.{ .ZMQ_HAVE_CURVE = true, .ZMQ_USE_LIBSODIUM = true });
+            platform.addValues(.{
+                .ZMQ_HAVE_CURVE = true,
+                .ZMQ_USE_LIBSODIUM = true,
+            });
             library.linkLibrary(sodium.artifact("sodium"));
             library.addIncludePath(sodium.path("src/libsodium/include"));
         }
