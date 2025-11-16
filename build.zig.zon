@@ -12,7 +12,7 @@
         .libsodium = .{
             .url = "git+https://github.com/jedisct1/libsodium#7f7873c21b5819f45927ecd344ac047ffb8b1a00",
             .hash = "N-V-__8AAJ2dYwDtsWQvo58_eb7kC8QOJVIwwRjulq-rbWMV",
-            .lazx = true,
+            .lazy = true,
         },
     },
 
