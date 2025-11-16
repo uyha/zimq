@@ -498,7 +498,7 @@ fn buildLibzmq(
         const curve_fail = b.addFail("CURVE can only be used with libsodium");
         library.step.dependOn(&curve_fail.step);
     }
-    if (options.curve) {
+    if (options.curve and options.libsodium) {
         if (b.lazyDependency(
             "libsodium",
             .{ .shared = false, .static = true },
@@ -506,9 +506,6 @@ fn buildLibzmq(
             platform.addValues(.{ .ZMQ_HAVE_CURVE = true, .ZMQ_USE_LIBSODIUM = true });
             library.linkLibrary(sodium.artifact("sodium"));
             library.addIncludePath(sodium.path("src/libsodium/include"));
-        } else {
-            const no_sodium = b.addFail("failed to load lazy dependency libsodium");
-            platform.step.dependOn(&no_sodium.step);
         }
     }
 
