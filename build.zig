@@ -22,10 +22,23 @@ pub fn build(b: *std.Build) void {
         "Omit debug symbols",
     ) orelse (optimize != .Debug);
 
+    const curve = b.option(
+        bool,
+        "curve",
+        "Enable CURVE security",
+    ) orelse false;
+    const libsodium = b.option(
+        bool,
+        "libsodium",
+        "Use libsodium for CURVE",
+    ) orelse curve;
+
     const options: Options = .{
         .poller = poller,
         .draft = draft,
         .use_radix_tree = use_radix_tree,
+        .curve = curve,
+        .libsodium = libsodium,
     };
 
     const libzmq = buildLibzmq(
@@ -138,6 +151,8 @@ const Options = struct {
     poller: Poller,
     draft: bool,
     use_radix_tree: bool,
+    curve: bool,
+    libsodium: bool,
 };
 
 const shared_values = .{
@@ -349,8 +364,6 @@ const linux_values = .{
     // TODO: Add an option for enabling NORM
     // TODO: Add an option for enabling VMCI
 
-    // TODO: Add an option for enabling CURVE
-    // TODO: Add an option for using libsodium
     // TODO: Add an option for using libgssapi_krb5
     // TODO: Add an option for enabling TLS and find a way to find and link GnuTLS
 
@@ -480,6 +493,24 @@ fn buildLibzmq(
     });
     library.linkLibC();
     library.linkLibCpp();
+
+    if (options.curve and !options.libsodium) {
+        const curve_fail = b.addFail("CURVE can only be used with libsodium");
+        library.step.dependOn(&curve_fail.step);
+    }
+    if (options.curve) {
+        if (b.lazyDependency(
+            "libsodium",
+            .{ .shared = false, .static = true },
+        )) |sodium| {
+            platform.addValues(.{ .ZMQ_HAVE_CURVE = true, .ZMQ_USE_LIBSODIUM = true });
+            library.linkLibrary(sodium.artifact("sodium"));
+            library.addIncludePath(sodium.path("src/libsodium/include"));
+        } else {
+            const no_sodium = b.addFail("failed to load lazy dependency libsodium");
+            platform.step.dependOn(&no_sodium.step);
+        }
+    }
 
     library.root_module.addIncludePath(platform.getOutput().dirname());
     if (options.draft) {
