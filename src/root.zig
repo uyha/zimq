@@ -1,8 +1,3 @@
-const zmq = @import("libzmq");
-const std = @import("std");
-const log = std.log.warn;
-const c = @import("std").c;
-
 const atomic_counter = @import("atomic_counter.zig");
 pub const AtomicCounter = atomic_counter.AtomicCounter;
 
@@ -88,6 +83,14 @@ comptime {
     std.testing.refAllDeclsRecursive(socket);
     std.testing.refAllDeclsRecursive(timers);
 
-    std.testing.refAllDeclsRecursive(curve);
+    if (config.curve) {
+        std.testing.refAllDeclsRecursive(curve);
+    }
     std.testing.refAllDeclsRecursive(z85);
 }
+
+const zmq = @import("libzmq");
+const config = @import("config");
+
+const std = @import("std");
+const log = std.log.warn;

@@ -1,27 +1,25 @@
-pub const Error = error{NotSupported};
 pub const KeyPair = struct {
     public_key: [40:0]u8 = @splat(0),
     secret: [40:0]u8 = @splat(0),
 };
-pub fn keyPair() if (config.curve) KeyPair else Error!void {
+pub fn keyPair() KeyPair {
+    if (!config.curve) {
+        @compileError("CURVE is not enabled");
+    }
+
     var result: KeyPair = undefined;
 
-    if (config.curve) {
-        assert(zmq.zmq_curve_keypair(&result.public_key, &result.secret) == 0);
-        return result;
-    } else {
-        return Error.NotSupported;
-    }
+    assert(zmq.zmq_curve_keypair(&result.public_key, &result.secret) == 0);
+    return result;
 }
-pub fn publicKey(secret: *const [40:0]u8) if (config.curve) [40:0]u8 else Error!void {
-    var result: [40:0]u8 = @splat(0);
-
-    if (config.curve) {
-        assert(zmq.zmq_curve_public(&result, secret) == 0);
-        return result;
-    } else {
-        return Error.NotSupported;
+pub fn publicKey(secret: *const [40:0]u8) [40:0]u8 {
+    if (!config.curve) {
+        @compileError("CURVE is not enabled");
     }
+
+    var result: [40:0]u8 = @splat(0);
+    assert(zmq.zmq_curve_public(&result, secret) == 0);
+    return result;
 }
 
 test "keyPair and publicKey" {
@@ -30,11 +28,6 @@ test "keyPair and publicKey" {
     if (config.curve) {
         const pair = keyPair();
         try t.expectEqualStrings(&pair.public_key, &publicKey(&pair.secret));
-    } else {
-        var dummy: [40:0]u8 = undefined;
-
-        try t.expectEqual(Error.NotSupported, keyPair());
-        try t.expectEqual(Error.NotSupported, publicKey(&dummy));
     }
 }
 
