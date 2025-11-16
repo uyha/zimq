@@ -22,17 +22,23 @@ pub fn build(b: *std.Build) void {
         "Omit debug symbols",
     ) orelse (optimize != .Debug);
 
-    const curve_libsodium = b.option(
+    const curve = b.option(
         bool,
-        "curve_libsodium",
-        "Include libsodium for curve support",
+        "curve",
+        "Enable CURVE security",
     ) orelse false;
+    const libsodium = b.option(
+        bool,
+        "libsodium",
+        "Use libsodium for CURVE",
+    ) orelse curve;
 
     const options: Options = .{
         .poller = poller,
         .draft = draft,
         .use_radix_tree = use_radix_tree,
-        .curve_libsodium = curve_libsodium,
+        .curve = curve,
+        .libsodium = libsodium,
     };
 
     const libzmq = buildLibzmq(
@@ -145,7 +151,8 @@ const Options = struct {
     poller: Poller,
     draft: bool,
     use_radix_tree: bool,
-    curve_libsodium: bool,
+    curve: bool,
+    libsodium: bool,
 };
 
 const shared_values = .{
@@ -487,9 +494,15 @@ fn buildLibzmq(
     library.linkLibC();
     library.linkLibCpp();
 
-    if (options.curve_libsodium) {
-        const maybe_sodium = b.lazyDependency("libsodium", .{ .shared = false, .static = true });
-        if (maybe_sodium) |sodium| {
+    if (options.curve and !options.libsodium) {
+        const curve_fail = b.addFail("CURVE can only be used with libsodium");
+        library.step.dependOn(&curve_fail.step);
+    }
+    if (options.curve) {
+        if (b.lazyDependency(
+            "libsodium",
+            .{ .shared = false, .static = true },
+        )) |sodium| {
             platform.addValues(.{ .ZMQ_HAVE_CURVE = true, .ZMQ_USE_LIBSODIUM = true });
             library.linkLibrary(sodium.artifact("sodium"));
             library.addIncludePath(sodium.path("src/libsodium/include"));
