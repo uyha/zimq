@@ -33,9 +33,6 @@ to be deprecated or superseded).
 ## Example
 
 ```zig
-const std = @import("std");
-const zimq = @import("zimq");
-
 pub fn main() !void {
     const context: *zimq.Context = try .init();
     defer context.deinit();
@@ -54,8 +51,11 @@ pub fn main() !void {
     var buffer: zimq.Message = .empty();
     _ = try pull.recvMsg(&buffer, .{});
 
-    std.debug.print("{s}\n", .{buffer.slice().?});
+    std.debug.print("{s}\n", .{buffer.slice()});
 }
+
+const std = @import("std");
+const zimq = @import("zimq");
 ```
 
 ## Binding map
