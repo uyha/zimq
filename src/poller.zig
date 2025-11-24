@@ -27,7 +27,7 @@ pub const Poller = opaque {
     }
     pub fn deinit(self: *Self) void {
         var temp: ?*Self = self;
-        _ = zmq.zmq_poller_destroy(&temp);
+        _ = zmq.zmq_poller_destroy(@ptrCast(&temp));
     }
 
     test init {

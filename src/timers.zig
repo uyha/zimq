@@ -13,7 +13,7 @@ pub const Timers = opaque {
 
     pub fn deinit(self: *Self) void {
         var temp: ?*Self = self;
-        _ = zmq.zmq_timers_destroy(&temp);
+        _ = zmq.zmq_timers_destroy(@ptrCast(&temp));
     }
 
     test init {
@@ -118,6 +118,10 @@ pub const Timers = opaque {
 
     test "timers functions" {
         const t = std.testing;
+        var runtime: std.Io.Threaded = .init_single_threaded;
+        defer runtime.deinit();
+
+        const io = runtime.io();
 
         const interval = 100;
 
@@ -146,14 +150,14 @@ pub const Timers = opaque {
 
         try t.expect(try timers.timeout() <= interval);
 
-        std.Thread.sleep((interval + 1) * 1_000_000);
+        try io.sleep(.fromMilliseconds(interval + 1), .boot);
         try timers.reset(handle);
         try timers.execute();
         try t.expect(!in.invoked);
         try t.expect(!in.same);
 
         try timers.setInterval(handle, interval);
-        std.Thread.sleep((interval + 1) * 1_000_000);
+        try io.sleep(.fromMilliseconds(interval + 1), .boot);
         try timers.execute();
         try t.expect(in.invoked);
         try t.expect(in.same);
@@ -162,7 +166,7 @@ pub const Timers = opaque {
         in.same = false;
         try timers.setInterval(handle, interval);
         try timers.cancel(handle);
-        std.Thread.sleep((interval + 1) * 1_000_000);
+        try io.sleep(.fromMilliseconds(interval + 1), .boot);
         try timers.execute();
         try t.expect(!in.invoked);
         try t.expect(!in.same);

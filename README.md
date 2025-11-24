@@ -16,7 +16,7 @@ to be deprecated or superseded).
 1. Run the following command to add this project as a dependency
 
    ```sh
-   zig fetch --save git+https://github.com/uyha/zimq.git
+   zig fetch --save git+https://github.com/uyha/zimq.git#zig-0.15.2
    ```
 
 1. In your `build.zig`, add the following
