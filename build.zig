@@ -482,16 +482,14 @@ fn buildLibzmq(
     }
     addPlatformValues(platform, target, options);
 
-    const library = b.addLibrary(.{
-        .name = "zmq",
-        .root_module = b.createModule(.{
-            .target = target,
-            .optimize = optimize,
-            .strip = strip,
-        }),
+    const module = b.createModule(.{
+        .target = target,
+        .optimize = optimize,
+        .strip = strip,
+        .link_libc = true,
+        .link_libcpp = true,
     });
-    library.linkLibC();
-    library.linkLibCpp();
+    const library = b.addLibrary(.{ .name = "zmq", .root_module = module });
 
     if (options.curve and !options.libsodium) {
         const curve_fail = b.addFail("CURVE can only be used with libsodium");
@@ -506,19 +504,19 @@ fn buildLibzmq(
                 .ZMQ_HAVE_CURVE = true,
                 .ZMQ_USE_LIBSODIUM = true,
             });
-            library.linkLibrary(sodium.artifact("sodium"));
-            library.addIncludePath(sodium.path("src/libsodium/include"));
+            module.linkLibrary(sodium.artifact("sodium"));
+            module.addIncludePath(sodium.path("src/libsodium/include"));
         }
     }
 
-    library.root_module.addIncludePath(platform.getOutput().dirname());
+    module.addIncludePath(platform.getOutputDir());
     if (options.draft) {
-        library.root_module.addCMacro("ZMQ_BUILD_DRAFT_API", "");
+        module.addCMacro("ZMQ_BUILD_DRAFT_API", "");
     }
     inline for (@typeInfo(@TypeOf(shared_values)).@"struct".fields) |field| {
-        library.root_module.addCMacro(field.name, "");
+        module.addCMacro(field.name, "");
     }
-    library.root_module.addCSourceFiles(.{
+    module.addCSourceFiles(.{
         .root = upstream.path("src"),
         .files = &zmq_source_files,
     });
