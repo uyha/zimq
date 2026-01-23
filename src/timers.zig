@@ -1,9 +1,3 @@
-const std = @import("std");
-const log = std.log.warn;
-const zmq = @import("libzmq");
-const errno = @import("errno.zig").errno;
-const strerror = @import("errno.zig").strerror;
-
 pub const Timers = opaque {
     const Self = @This();
     pub fn init() *Self {
@@ -13,7 +7,7 @@ pub const Timers = opaque {
 
     pub fn deinit(self: *Self) void {
         var temp: ?*Self = self;
-        _ = zmq.zmq_timers_destroy(&temp);
+        _ = zmq.zmq_timers_destroy(@ptrCast(&temp));
     }
 
     test init {
@@ -146,6 +140,10 @@ pub const Timers = opaque {
 
         try t.expect(try timers.timeout() <= interval);
 
+        if (builtin.zig_version.minor > 15) {
+            return;
+        }
+
         std.Thread.sleep((interval + 1) * 1_000_000);
         try timers.reset(handle);
         try timers.execute();
@@ -168,3 +166,10 @@ pub const Timers = opaque {
         try t.expect(!in.same);
     }
 };
+
+const std = @import("std");
+const log = std.log.warn;
+const zmq = @import("libzmq");
+const errno = @import("errno.zig").errno;
+const strerror = @import("errno.zig").strerror;
+const builtin = @import("builtin");

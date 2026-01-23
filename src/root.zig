@@ -74,19 +74,20 @@ pub fn proxySteerable(frontend: *Socket, backend: *Socket, capture: ?*Socket, co
     }
 }
 
-comptime {
-    std.testing.refAllDeclsRecursive(atomic_counter);
-    std.testing.refAllDeclsRecursive(context);
-    std.testing.refAllDeclsRecursive(Message);
-    std.testing.refAllDeclsRecursive(poll);
-    std.testing.refAllDeclsRecursive(poller);
-    std.testing.refAllDeclsRecursive(socket);
-    std.testing.refAllDeclsRecursive(timers);
+test {
+    std.testing.refAllDecls(AtomicCounter);
+    std.testing.refAllDecls(Context);
+    std.testing.refAllDecls(Message);
+    std.testing.refAllDecls(poll);
+    std.testing.refAllDecls(Poller);
+    std.testing.refAllDecls(socket);
+    std.testing.refAllDecls(Socket);
+    std.testing.refAllDecls(Timers);
 
     if (config.curve) {
-        std.testing.refAllDeclsRecursive(curve);
+        std.testing.refAllDecls(curve);
     }
-    std.testing.refAllDeclsRecursive(z85);
+    std.testing.refAllDecls(z85);
 }
 
 const zmq = @import("libzmq");
