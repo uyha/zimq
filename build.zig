@@ -397,6 +397,73 @@ const macos_values = .{
     // `strlcpy` exists in `string.h`
     .ZMQ_HAVE_STRLCPY = {},
 };
+const freebsd_values = .{
+    // FreeBSD uses kqueue for polling
+    .ZMQ_IOTHREAD_POLLER_USE_KQUEUE = {},
+    // `posix_memalign` exists in `stdlib.h`
+    .HAVE_POSIX_MEMALIGN = {},
+    // `pselect` exists in `sys/select.h`
+    .ZMQ_HAVE_PPOLL = {},
+    // `fork` exists in `unistd.h`
+    .HAVE_FORK = {},
+    // `clock_gettime` exists in `time.h`
+    .HAVE_CLOCK_GETTIME = {},
+    // `mkdtemp` exists in `stdlib.h`
+    .HAVE_MKDTEMP = {},
+    // `sys/uio.h` exists
+    .ZMQ_HAVE_UIO = {},
+    // `ifaddrs.h` exists
+    .ZMQ_HAVE_IFADDRS = {},
+    // `SO_NOSIGPIPE` defined by `sys/socket.h`
+    .ZMQ_HAVE_SO_NOSIGPIPE = {},
+    // `SO_PEERCRED` does not exist (Linux-specific)
+    .ZMQ_HAVE_SO_PEERCRED = null,
+    // `LOCAL_PEERCRED` exists in `sys/un.h`, but the upstream source
+    // does not include it in `stream_engine_base.cpp`
+    .ZMQ_HAVE_LOCAL_PEERCRED = null,
+    // `SO_BUSY_POLL` does not exist (Linux-specific)
+    .ZMQ_HAVE_BUSY_POLL = null,
+    // `O_CLOEXEC` defined by `fcntl.h`
+    .ZMQ_HAVE_O_CLOEXEC = {},
+    // `SOCK_CLOEXEC` defined by `sys/socket.h`
+    .ZMQ_HAVE_SOCK_CLOEXEC = {},
+    // `SO_KEEPALIVE` defined by `sys/socket.h`
+    .ZMQ_HAVE_SO_KEEPALIVE = {},
+    // `SO_PRIORITY` does not exist (Linux-specific)
+    .ZMQ_HAVE_SO_PRIORITY = null,
+    // `TCP_KEEPCNT` defined by `netinet/tcp.h`
+    .ZMQ_HAVE_TCP_KEEPCNT = {},
+    // `TCP_KEEPIDLE` defined by `netinet/tcp.h`
+    .ZMQ_HAVE_TCP_KEEPIDLE = {},
+    // `TCP_KEEPINTVL` defined by `netinet/tcp.h`
+    .ZMQ_HAVE_TCP_KEEPINTVL = {},
+    // `TCP_KEEPALIVE` not defined (macOS-specific alias)
+    .ZMQ_HAVE_TCP_KEEPALIVE = null,
+    // FreeBSD uses `pthread_set_name_np` from `pthread_np.h`, but the
+    // upstream source does not include it in `thread.cpp`
+    .ZMQ_HAVE_PTHREAD_SETNAME_1 = null,
+    .ZMQ_HAVE_PTHREAD_SETNAME_2 = null,
+    .ZMQ_HAVE_PTHREAD_SETNAME_3 = null,
+    .ZMQ_HAVE_PTHREAD_SET_NAME = null,
+    // `pthread_setaffinity_np` does not exist (FreeBSD uses `cpuset_setaffinity`)
+    .ZMQ_HAVE_PTHREAD_SET_AFFINITY = null,
+    // `accept4` exists in `sys/socket.h`
+    .HAVE_ACCEPT4 = {},
+    // `strnlen` exists in `string.h`
+    .HAVE_STRNLEN = {},
+    // FreeBSD supports IPC via Unix domain sockets
+    .ZMQ_HAVE_IPC = {},
+    // FreeBSD has `struct sockaddr_un`
+    .ZMQ_HAVE_STRUCT_SOCKADDR_UN = {},
+    // `strlcpy` exists in `string.h`
+    .ZMQ_HAVE_STRLCPY = {},
+    // `SO_BINDTODEVICE` does not exist (Linux-specific)
+    .ZMQ_HAVE_SO_BINDTODEVICE = null,
+    // TIPC is not supported (Linux-specific)
+    .ZMQ_HAVE_TIPC = null,
+    // `if_nametoindex` exists in `net/if.h`
+    .HAVE_IF_NAMETOINDEX = {},
+};
 const gnu_libc_values = .{
     // `strlcpy` does not exit in `string.h`
     .ZMQ_HAVE_STRLCPY = null,
@@ -450,6 +517,9 @@ fn addPlatformValues(
         .macos => {
             config_header.addValues(macos_values);
         },
+        .freebsd => {
+            config_header.addValues(freebsd_values);
+        },
         else => {},
     }
 }
@@ -471,7 +541,7 @@ fn buildLibzmq(
     }, .{});
     // TODO: Support all the platforms that ZeroMQ supports
     switch (target.result.os.tag) {
-        .linux, .macos => {},
+        .linux, .macos, .freebsd => {},
         else => |tag| {
             const not_supported = b.addFail(b.fmt(
                 "{s} is not supported",
@@ -510,6 +580,9 @@ fn buildLibzmq(
     }
 
     module.addIncludePath(platform.getOutputDir());
+    if (target.result.os.tag == .freebsd) {
+        module.addCMacro("__BSD_VISIBLE", "1");
+    }
     if (options.draft) {
         module.addCMacro("ZMQ_BUILD_DRAFT_API", "");
     }
