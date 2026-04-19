@@ -282,7 +282,7 @@ pub const Poller = opaque {
                 zmq.EINVAL => return null,
                 else => |err| {
                     log("{s}\n", .{strerror(err)});
-                    return ModifyFdError.Unexpected;
+                    return FdError.Unexpected;
                 },
             }
         }

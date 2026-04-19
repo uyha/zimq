@@ -153,7 +153,7 @@ pub const Context = opaque {
             switch (errno()) {
                 else => |err| {
                     log("{s}\n", .{strerror(err)});
-                    return SetError.Unexpected;
+                    return GetError.Unexpected;
                 },
             }
         }
