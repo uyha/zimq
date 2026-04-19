@@ -23,8 +23,10 @@ deprecated = {
     "ZMQ_IPV4ONLY",
 }
 
+headers = {"User-Agent": "Mozilla/5.0"}
+
 set_url = "https://libzmq.readthedocs.io/en/latest/zmq_setsockopt.html"
-with request.urlopen(set_url) as resp:
+with request.urlopen(request.Request(set_url, headers=headers)) as resp:
     set_sel = Selector(resp.read().decode())
 
 
@@ -112,7 +114,7 @@ for option in set_sel.xpath("//div[@class='sect2']"):
     )
 
 get_url = "https://libzmq.readthedocs.io/en/latest/zmq_getsockopt.html"
-with request.urlopen(get_url) as resp:
+with request.urlopen(request.Request(get_url, headers=headers)) as resp:
     get_sel = Selector(resp.read().decode())
 
 for option in get_sel.xpath("//div[@class='sect2']"):

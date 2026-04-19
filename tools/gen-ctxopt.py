@@ -12,8 +12,10 @@ set_types = {
     "[:0]const u8": ["thread_name_prefix"],
 }
 
+headers = {"User-Agent": "Mozilla/5.0"}
+
 url = "https://libzmq.readthedocs.io/en/latest/zmq_ctx_set.html"
-with request.urlopen(url) as resp:
+with request.urlopen(request.Request(url, headers=headers)) as resp:
     sel = Selector(resp.read().decode())
 
 
@@ -33,7 +35,7 @@ print("};")
 print("pub fn SetOptionType(option: SetOption) type {")
 print("    return switch (option) {")
 for t, opts in set_types.items():
-    print(f"        {", ".join(f".{opt}" for opt in opts)} => {t},")
+    print(f"        {', '.join(f'.{opt}' for opt in opts)} => {t},")
 print("        else => c_int,")
 print("    };")
 print("}")
@@ -46,7 +48,7 @@ get_types = {
     "[:0]u8": ["thread_name_prefix"],
 }
 url = "https://libzmq.readthedocs.io/en/latest/zmq_ctx_get.html"
-with request.urlopen(url) as resp:
+with request.urlopen(request.Request(url, headers=headers)) as resp:
     sel = Selector(resp.read().decode())
 print("pub const GetOption = enum(c_int) {")
 for text in sel.xpath("//div[@class='sect2']/h3/text()"):
@@ -64,7 +66,7 @@ print("};")
 print("pub fn GetOptionType(option: GetOption) type {")
 print("    return switch (option) {")
 for t, opts in get_types.items():
-    print(f"        {", ".join(f".{opt}" for opt in opts)} => {t},")
+    print(f"        {', '.join(f'.{opt}' for opt in opts)} => {t},")
 print("        else => c_int,")
 print("    };")
 print("}")

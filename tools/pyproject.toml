@@ -3,6 +3,4 @@ name = "tools"
 version = "0.1.0"
 description = "Add your description here"
 requires-python = ">=3.12"
-dependencies = [
-    "parsel>=1.10.0",
-]
+dependencies = ["parsel>=1.11.0"]
