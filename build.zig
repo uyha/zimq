@@ -42,39 +42,16 @@ pub fn build(b: *std.Build) void {
     };
 
     const libzmq = buildLibzmq(b, target, optimize, strip, options);
-
-    const upstream = b.dependency("libzmq", .{});
-    const translate = b.addTranslateC(.{
-        .root_source_file = upstream.path(
-            b.pathJoin(&.{ "include", "zmq.h" }),
-        ),
-        .target = target,
-        .optimize = optimize,
-    });
-    if (options.draft) {
-        translate.defineCMacro("ZMQ_BUILD_DRAFT_API", "");
-    }
-    inline for (@typeInfo(@TypeOf(shared_values)).@"struct".fields) |field| {
-        translate.defineCMacro(field.name, "");
-    }
-    const libzmq_module = b.createModule(.{
-        .root_source_file = translate.getOutput(),
-        .target = target,
-        .optimize = optimize,
-    });
     const zimq = b.addModule(
         "zimq",
         .{
-            .root_source_file = b.path(
-                b.pathJoin(&.{ "src", "root.zig" }),
-            ),
+            .root_source_file = b.path(b.pathJoin(&.{ "src", "root.zig" })),
             .target = target,
             .optimize = optimize,
             .strip = strip,
         },
     );
-    zimq.addImport("libzmq", libzmq_module);
-    zimq.linkLibrary(libzmq);
+    zimq.addImport("libzmq", libzmq);
 
     const config = b.addOptions();
     zimq.addOptions("config", config);
@@ -530,8 +507,33 @@ fn buildLibzmq(
     optimize: std.builtin.OptimizeMode,
     strip: bool,
     options: Options,
-) *std.Build.Step.Compile {
+) *std.Build.Module {
     const upstream = b.dependency("libzmq", .{});
+
+    const translate = b.addTranslateC(.{
+        .root_source_file = upstream.path(
+            b.pathJoin(&.{ "include", "zmq.h" }),
+        ),
+        .target = target,
+        .optimize = optimize,
+    });
+    const module = translate.createModule();
+    module.link_libc = true;
+    module.link_libcpp = true;
+    module.strip = strip;
+
+    if (target.result.os.tag == .freebsd) {
+        translate.defineCMacro("__BSD_VISIBLE", "1");
+    }
+    if (options.draft) {
+        translate.defineCMacro("ZMQ_BUILD_DRAFT_API", "");
+    }
+    inline for (@typeInfo(@TypeOf(shared_values)).@"struct".fields) |field| {
+        translate.defineCMacro(field.name, "");
+    }
+    for (translate.c_macros.items) |macro| {
+        module.c_macros.append(b.allocator, b.fmt("-D{s}", .{macro})) catch @panic("OOM");
+    }
 
     var platform = b.addConfigHeader(.{
         .style = .{ .cmake = upstream.path(
@@ -552,18 +554,9 @@ fn buildLibzmq(
     }
     addPlatformValues(platform, target, options);
 
-    const module = b.createModule(.{
-        .target = target,
-        .optimize = optimize,
-        .strip = strip,
-        .link_libc = true,
-        .link_libcpp = true,
-    });
-    const library = b.addLibrary(.{ .name = "zmq", .root_module = module });
-
     if (options.curve and !options.libsodium) {
         const curve_fail = b.addFail("CURVE can only be used with libsodium");
-        library.step.dependOn(&curve_fail.step);
+        translate.step.dependOn(&curve_fail.step);
     }
     if (options.curve and options.libsodium) {
         if (b.lazyDependency(
@@ -580,19 +573,10 @@ fn buildLibzmq(
     }
 
     module.addIncludePath(platform.getOutputDir());
-    if (target.result.os.tag == .freebsd) {
-        module.addCMacro("__BSD_VISIBLE", "1");
-    }
-    if (options.draft) {
-        module.addCMacro("ZMQ_BUILD_DRAFT_API", "");
-    }
-    inline for (@typeInfo(@TypeOf(shared_values)).@"struct".fields) |field| {
-        module.addCMacro(field.name, "");
-    }
     module.addCSourceFiles(.{
         .root = upstream.path("src"),
         .files = &zmq_source_files,
     });
 
-    return library;
+    return module;
 }
