@@ -450,57 +450,6 @@ const musl_libc_values = .{
     .ZMQ_HAVE_STRLCPY = {},
 };
 
-fn addPlatformValues(
-    config_header: *Build.Step.ConfigHeader,
-    target: Build.ResolvedTarget,
-    options: Options,
-) void {
-    config_header.addValues(shared_values);
-    config_header.addValues(.{
-        // TODO: Seems to be wrong when compared with `getconf LEVEL1_DCACHE_LINESIZE`
-        .ZMQ_CACHELINE_SIZE = std.atomic.cacheLineForCpu(target.result.cpu),
-    });
-
-    switch (options.poller) {
-        .poll => config_header.addValues(.{ .ZMQ_POLL_BASED_ON_POLL = 1 }),
-        .select => config_header.addValues(.{ .ZMQ_POLL_BASED_ON_SELECT = 1 }),
-    }
-
-    if (options.use_radix_tree) {
-        config_header.addValues(.{ .ZMQ_USE_RADIX_TREE = {} });
-    }
-
-    switch (target.result.os.tag) {
-        .linux => {
-            config_header.addValues(linux_values);
-            if (target.result.isGnuLibC()) {
-                config_header.addValues(gnu_libc_values);
-
-                // glibc 2.38 introduces `strlcpy`
-                const version_range = target.result.os.versionRange();
-                const @"at_least_2.38" = version_range.linux.isAtLeast(
-                    .{ .major = 2, .minor = 38, .patch = 0 },
-                ) orelse unreachable;
-                if (@"at_least_2.38") {
-                    config_header.addValues(.{
-                        .ZMQ_HAVE_STRLCPY = {},
-                    });
-                }
-            }
-            if (target.result.isMuslLibC()) {
-                config_header.addValues(musl_libc_values);
-            }
-        },
-        .macos => {
-            config_header.addValues(macos_values);
-        },
-        .freebsd => {
-            config_header.addValues(freebsd_values);
-        },
-        else => {},
-    }
-}
-
 fn buildLibzmq(
     b: *Build,
     target: Build.ResolvedTarget,
@@ -552,7 +501,50 @@ fn buildLibzmq(
             platform.step.dependOn(&not_supported.step);
         },
     }
-    addPlatformValues(platform, target, options);
+    platform.addValues(shared_values);
+    platform.addValues(.{
+        // TODO: Seems to be wrong when compared with `getconf LEVEL1_DCACHE_LINESIZE`
+        .ZMQ_CACHELINE_SIZE = std.atomic.cacheLineForCpu(target.result.cpu),
+    });
+
+    switch (options.poller) {
+        .poll => platform.addValues(.{ .ZMQ_POLL_BASED_ON_POLL = 1 }),
+        .select => platform.addValues(.{ .ZMQ_POLL_BASED_ON_SELECT = 1 }),
+    }
+
+    if (options.use_radix_tree) {
+        platform.addValues(.{ .ZMQ_USE_RADIX_TREE = {} });
+    }
+
+    switch (target.result.os.tag) {
+        .linux => {
+            platform.addValues(linux_values);
+            if (target.result.isGnuLibC()) {
+                platform.addValues(gnu_libc_values);
+
+                // glibc 2.38 introduces `strlcpy`
+                const version_range = target.result.os.versionRange();
+                const @"at_least_2.38" = version_range.linux.isAtLeast(
+                    .{ .major = 2, .minor = 38, .patch = 0 },
+                ) orelse unreachable;
+                if (@"at_least_2.38") {
+                    platform.addValues(.{
+                        .ZMQ_HAVE_STRLCPY = {},
+                    });
+                }
+            }
+            if (target.result.isMuslLibC()) {
+                platform.addValues(musl_libc_values);
+            }
+        },
+        .macos => {
+            platform.addValues(macos_values);
+        },
+        .freebsd => {
+            platform.addValues(freebsd_values);
+        },
+        else => {},
+    }
 
     if (options.curve and !options.libsodium) {
         const curve_fail = b.addFail("CURVE can only be used with libsodium");
