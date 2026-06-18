@@ -1,7 +1,7 @@
 const std = @import("std");
 const log = std.log.warn;
 const c = std.c;
-const zmq = @import("libzmq");
+const zmq = @import("zmq");
 
 const Context = @import("context.zig").Context;
 const Message = @import("Message.zig");

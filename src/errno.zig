@@ -1,5 +1,5 @@
 const std = @import("std");
-const zmq = @import("libzmq");
+const zmq = @import("zmq");
 
 pub fn errno() c_int {
     return zmq.zmq_errno();

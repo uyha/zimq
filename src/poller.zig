@@ -1,6 +1,6 @@
 const std = @import("std");
 const log = std.log.warn;
-const zmq = @import("libzmq");
+const zmq = @import("zmq");
 
 const errno = @import("errno.zig").errno;
 const strerror = @import("errno.zig").strerror;

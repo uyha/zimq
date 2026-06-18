@@ -1,4 +1,4 @@
-const zmq = @import("libzmq");
+const zmq = @import("zmq");
 const std = @import("std");
 const log = std.log.warn;
 const c = @import("std").c;

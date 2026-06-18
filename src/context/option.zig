@@ -1,5 +1,5 @@
 // Auto generated, change by updating tools/gen-ctxopt.py instead
-const zmq = @import("libzmq");
+const zmq = @import("zmq");
 
 pub const SetOption = enum(c_int) {
     blocky = zmq.ZMQ_BLOCKY,

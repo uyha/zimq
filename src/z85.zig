@@ -1,4 +1,4 @@
-const zmq = @import("libzmq");
+const zmq = @import("zmq");
 
 pub const EncodeError = error{
     BufferTooSmall,

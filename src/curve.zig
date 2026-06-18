@@ -31,7 +31,7 @@ test "keyPair and publicKey" {
     }
 }
 
-const zmq = @import("libzmq");
+const zmq = @import("zmq");
 const config = @import("config");
 
 const std = @import("std");

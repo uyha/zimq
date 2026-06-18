@@ -1,4 +1,4 @@
-const zmq = @import("libzmq");
+const zmq = @import("zmq");
 
 pub const Type = enum(c_int) {
     req = zmq.ZMQ_REQ,

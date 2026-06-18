@@ -90,7 +90,7 @@ test {
     std.testing.refAllDecls(z85);
 }
 
-const zmq = @import("libzmq");
+const zmq = @import("zmq");
 const config = @import("config");
 
 const std = @import("std");

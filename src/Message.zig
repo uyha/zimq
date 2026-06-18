@@ -342,7 +342,7 @@ test setGroup {
     try t.expectEqualStrings("somegroup", msg.getGroup());
 }
 
-const zmq = @import("libzmq");
+const zmq = @import("zmq");
 const std = @import("std");
 const log = std.log.warn;
 const posix = std.posix;

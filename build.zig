@@ -41,7 +41,6 @@ pub fn build(b: *std.Build) void {
         .libsodium = libsodium,
     };
 
-    const libzmq = buildLibzmq(b, target, optimize, strip, options);
     const zimq = b.addModule(
         "zimq",
         .{
@@ -51,7 +50,8 @@ pub fn build(b: *std.Build) void {
             .strip = strip,
         },
     );
-    zimq.addImport("libzmq", libzmq);
+    const zmq = buildLibzmq(b, target, optimize, strip, options);
+    zimq.addImport("zmq", zmq);
 
     const config = b.addOptions();
     zimq.addOptions("config", config);
@@ -466,10 +466,19 @@ fn buildLibzmq(
         .target = target,
         .optimize = optimize,
     });
+
     const module = translate.createModule();
     module.link_libc = true;
     module.link_libcpp = true;
     module.strip = strip;
+    const library = b.addLibrary(.{
+        .name = "zmq",
+        .root_module = module,
+    });
+    b.installArtifact(library);
+
+    const header = translate.addModule("zmq");
+    header.linkLibrary(library);
 
     if (target.result.os.tag == .freebsd) {
         translate.defineCMacro("__BSD_VISIBLE", "1");
@@ -548,7 +557,7 @@ fn buildLibzmq(
 
     if (options.curve and !options.libsodium) {
         const curve_fail = b.addFail("CURVE can only be used with libsodium");
-        translate.step.dependOn(&curve_fail.step);
+        library.step.dependOn(&curve_fail.step);
     }
     if (options.curve and options.libsodium) {
         if (b.lazyDependency(
@@ -570,5 +579,5 @@ fn buildLibzmq(
         .files = &zmq_source_files,
     });
 
-    return module;
+    return header;
 }

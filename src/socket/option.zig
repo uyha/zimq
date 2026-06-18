@@ -1,5 +1,5 @@
 // Auto generated, change by updating tools/gen-ctxopt.py instead
-const zmq = @import("libzmq");
+const zmq = @import("zmq");
 const posix = @import("std").posix;
 pub const Type = @import("type.zig").Type;
 
