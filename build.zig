@@ -87,10 +87,10 @@ pub fn build(b: *std.Build) void {
     const format = b.addFmt(.{
         .check = true,
         .paths = &.{
-            "src/",
-            "build.zig",
-            "build.zig.zon",
-            "example.zig",
+            b.path("src/"),
+            b.path("build.zig"),
+            b.path("build.zig.zon"),
+            b.path("example.zig"),
         },
     });
     const format_step = b.step("fmt", "Format project");
@@ -132,10 +132,12 @@ const Options = struct {
 };
 
 const shared_values = .{
-    ._REENTRANT = {},
-    ._THREAD_SAFE = {},
+    // These values are not used in platform.hpp.in anymore
+    // ._REENTRANT = {},
+    // ._THREAD_SAFE = {},
+    //
+    // .ZMQ_CUSTOM_PLATFORM_HPP = {},
 
-    .ZMQ_CUSTOM_PLATFORM_HPP = {},
     .ZMQ_USE_CV_IMPL_STL11 = {}, // LLVM for sure has std::condition_variable
     .ZMQ_HAVE_NOEXCEPT = {}, // LLVM for sure supports `noexcept`
 };
@@ -486,11 +488,11 @@ fn buildLibzmq(
     if (options.draft) {
         translate.defineCMacro("ZMQ_BUILD_DRAFT_API", "");
     }
-    inline for (@typeInfo(@TypeOf(shared_values)).@"struct".fields) |field| {
-        translate.defineCMacro(field.name, "");
+    inline for (@typeInfo(@TypeOf(shared_values)).@"struct".field_names) |name| {
+        translate.defineCMacro(name, "");
     }
     for (translate.c_macros.items) |macro| {
-        module.c_macros.append(b.allocator, b.fmt("-D{s}", .{macro})) catch @panic("OOM");
+        module.addCMacro(b.graph.wip_configuration.stringSlice(macro), "");
     }
 
     var platform = b.addConfigHeader(.{

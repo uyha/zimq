@@ -10,8 +10,8 @@
             .hash = "N-V-__8AAHUzRQAL7Ikh0_T9Nw0RdIaq1ntd_qhYGJA9AvC6",
         },
         .libsodium = .{
-            .url = "git+https://github.com/jedisct1/libsodium#77e1ce5d6dee871c49ef211222ba18ef0c486bda",
-            .hash = "N-V-__8AAGV3jgBL34nv4uUihxaCgroWLfj966-SVjBHn9RE",
+            .url = "git+https://github.com/jedisct1/libsodium#95a428090fb7229567244649d901a2fe94c199bc",
+            .hash = "N-V-__8AADShbQDFITDXuHgXUDFntihecMPA_m3TVrMRxbU1",
             .lazy = true,
         },
     },
