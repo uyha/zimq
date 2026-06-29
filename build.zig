@@ -132,12 +132,6 @@ const Options = struct {
 };
 
 const shared_values = .{
-    // These values are not used in platform.hpp.in anymore
-    // ._REENTRANT = {},
-    // ._THREAD_SAFE = {},
-    //
-    // .ZMQ_CUSTOM_PLATFORM_HPP = {},
-
     .ZMQ_USE_CV_IMPL_STL11 = {}, // LLVM for sure has std::condition_variable
     .ZMQ_HAVE_NOEXCEPT = {}, // LLVM for sure supports `noexcept`
 };
@@ -482,17 +476,29 @@ fn buildLibzmq(
     const header = translate.addModule("zmq");
     header.linkLibrary(library);
 
-    if (target.result.os.tag == .freebsd) {
-        translate.defineCMacro("__BSD_VISIBLE", "1");
-    }
-    if (options.draft) {
-        translate.defineCMacro("ZMQ_BUILD_DRAFT_API", "");
-    }
-    inline for (@typeInfo(@TypeOf(shared_values)).@"struct".field_names) |name| {
-        translate.defineCMacro(name, "");
-    }
-    for (translate.c_macros.items) |macro| {
-        module.addCMacro(b.graph.wip_configuration.stringSlice(macro), "");
+    {
+        var macros: std.StringArrayHashMapUnmanaged([]const u8) = .empty;
+        defer macros.deinit(b.allocator);
+
+        macros.put(b.allocator, "_REENTRANT", "") catch @panic("OOM");
+        macros.put(b.allocator, "_THREAD_SAFE", "") catch @panic("OOM");
+        macros.put(b.allocator, "ZMQ_CUSTOM_PLATFORM_HPP", "") catch @panic("OOM");
+
+        if (target.result.os.tag == .freebsd) {
+            macros.put(b.allocator, "__BSD_VISIBLE", "1") catch @panic("OOM");
+        }
+        if (options.draft) {
+            macros.put(b.allocator, "ZMQ_BUILD_DRAFT_API", "") catch @panic("OOM");
+        }
+        inline for (@typeInfo(@TypeOf(shared_values)).@"struct".field_names) |name| {
+            macros.put(b.allocator, name, "") catch @panic("OOM");
+        }
+
+        var iter = macros.iterator();
+        while (iter.next()) |entry| {
+            translate.defineCMacro(entry.key_ptr.*, entry.value_ptr.*);
+            module.addCMacro(entry.key_ptr.*, entry.value_ptr.*);
+        }
     }
 
     var platform = b.addConfigHeader(.{
