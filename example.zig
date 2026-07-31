@@ -1,5 +1,6 @@
 const std = @import("std");
 const zimq = @import("zimq");
+const zmq = zimq.zmq;
 
 pub fn main() !void {
     const context: *zimq.Context = try .init();
@@ -14,10 +15,17 @@ pub fn main() !void {
     try pull.bind("inproc://#1");
     try push.connect("inproc://#1");
 
+    try push.sendSlice("hello", .more);
     try push.sendSlice("hello", .{});
 
-    var buffer: zimq.Message = .empty();
-    _ = try pull.recvMsg(&buffer, .{});
+    var message: zimq.Message = .empty();
+    _ = try pull.recvMsg(&message, .{});
 
-    std.debug.print("{s}\n", .{buffer.slice()});
+    std.debug.print("{s}\n", .{message.slice()});
+
+    var buffer: [255:0]u8 = @splat(undefined);
+    std.debug.print("{s}\n", .{try pull.getSlice(.last_endpoint, &buffer)});
+    std.debug.print("{}\n", .{try pull.get(.rcvmore)});
+    std.debug.print("{}\n", .{try pull.get(.backlog)});
+    std.debug.print("{}\n", .{message.more()});
 }

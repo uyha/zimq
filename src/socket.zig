@@ -448,12 +448,7 @@ pub const Socket = opaque {
             else => @compileError("Unrecognized type: " ++ @typeName(RawValue)),
         };
 
-        if (zmq.zmq_setsockopt(
-            self,
-            @intFromEnum(option),
-            ptr,
-            size,
-        ) == 0) {
+        if (zmq.zmq_setsockopt(self, @intFromEnum(option), ptr, size) == 0) {
             return;
         }
 
@@ -476,62 +471,114 @@ pub const Socket = opaque {
         Interrupted,
         Unexpected,
     };
-    pub fn get(self: *Self, comptime option: GetOption, out: *GetOptionType(option)) SetError!void {
-        const Out = @TypeOf(out.*);
-        const result = result: switch (@typeInfo(Out)) {
-            .bool => {
-                var value: c_int = undefined;
-                var size: usize = @sizeOf(@TypeOf(value));
+    fn mapGetError(raw: c_int) GetError {
+        return switch (raw) {
+            zmq.EINVAL => GetError.OptionInvalid,
+            zmq.ETERM => GetError.ContextInvalid,
+            zmq.ENOTSOCK => GetError.SocketInvalid,
+            zmq.EINTR => GetError.Interrupted,
+            else => |err| {
+                log("{s}\n", .{strerror(err)});
+                return GetError.Unexpected;
+            },
+        };
+    }
+    pub fn get(self: *Self, comptime option: GetOption) GetError!GetOptionType(option) {
+        const Output = GetOptionType(option);
+        const error_message = std.fmt.comptimePrint(
+            "Internal error: {} is not expected",
+            .{Output},
+        );
 
-                const result = zmq.zmq_getsockopt(self, @intFromEnum(option), &value, &size);
-
-                if (result != -1) {
-                    out.* = value != 0;
-                }
-
-                break :result result;
-            },
-            .@"struct" => |Struct| {
-                if (Struct.layout != .@"packed") {
-                    @compileError("Unrecognized type: " ++ @typeName(Out));
-                }
-                var size: usize = @sizeOf(Out);
-                break :result zmq.zmq_getsockopt(self, @intFromEnum(option), out, &size);
-            },
-            .@"enum" => {
-                var size: usize = @sizeOf(Out);
-                break :result zmq.zmq_getsockopt(self, @intFromEnum(option), out, &size);
-            },
-            .int => {
-                var size: usize = @sizeOf(Out);
-                break :result zmq.zmq_getsockopt(self, @intFromEnum(option), out, &size);
-            },
+        switch (@typeInfo(Output)) {
             .pointer => |Pointer| {
                 if (Pointer.size != .slice) {
-                    @compileError("Unrecognized type: " ++ @typeName(Out));
+                    @compileError(error_message);
                 }
-                break :result zmq.zmq_getsockopt(
-                    self,
-                    @intFromEnum(option),
-                    out.ptr,
-                    &out.len,
-                );
+                @compileError(std.fmt.comptimePrint(
+                    "{} returns a slice, use `getSlice` to get its value",
+                    .{option},
+                ));
             },
-            else => @compileError("Unrecognized type: " ++ @typeName(Out)),
-        };
-
-        if (result == -1) {
-            return switch (errno()) {
-                zmq.EINVAL => SetError.OptionInvalid,
-                zmq.ETERM => SetError.ContextInvalid,
-                zmq.ENOTSOCK => SetError.SocketInvalid,
-                zmq.EINTR => SetError.Interrupted,
-                else => |err| {
-                    log("{s}\n", .{strerror(err)});
-                    return SetError.Unexpected;
-                },
-            };
+            .bool, .@"enum", .int => {},
+            .@"struct" => |Struct| {
+                if (Struct.layout != .@"packed") {
+                    @compileError(error_message);
+                }
+            },
+            else => @compileError(error_message),
         }
+
+        const Value = if (Output == bool) c_int else Output;
+
+        var output: Value = undefined;
+        var size: usize = @sizeOf(Value);
+
+        if (zmq.zmq_getsockopt(self, @intFromEnum(option), &output, &size) == -1) {
+            return mapGetError(errno());
+        }
+
+        return if (Output == bool) output != 0 else output;
+    }
+    test get {
+        var context: *Context = try .init();
+        defer context.deinit();
+
+        var socket: *Socket = try .init(context, .pull);
+        defer socket.deinit();
+
+        _ = try socket.get(.fd);
+    }
+
+    pub fn getSlice(self: *Self, comptime option: GetOption, buffer: [:0]u8) GetError![:0]u8 {
+        const Output = GetOptionType(option);
+
+        if (Output != [:0]u8) {
+            const error_message = std.fmt.comptimePrint(
+                "Internal error: {} is not expected",
+                .{Output},
+            );
+            const use_get_message = std.fmt.comptimePrint(
+                "{} returns a scalar, use `get` to get its value",
+                .{option},
+            );
+            switch (@typeInfo(Output)) {
+                .bool, .@"enum", .int => @compileError(use_get_message),
+                .@"struct" => |Struct| {
+                    if (Struct.layout != .@"packed") {
+                        @compileError(error_message);
+                    }
+                    @compileError(use_get_message);
+                },
+                else => @compileError(error_message),
+            }
+        }
+
+        var ptr: [*:0]u8 = buffer.ptr;
+        var len: usize = buffer.len;
+
+        if (zmq.zmq_getsockopt(self, @intFromEnum(option), @ptrCast(ptr), &len) == -1) {
+            return mapGetError(errno());
+        }
+
+        // libzmq also counts the null byte when write to `len`, hence the slice contains
+        // only `len - 1` characters
+        return ptr[0 .. len - 1 :0];
+    }
+    test getSlice {
+        var context: *Context = try .init();
+        defer context.deinit();
+
+        var socket: *Socket = try .init(context, .pull);
+        defer socket.deinit();
+
+        const endpoint = "inproc://#1";
+        try socket.bind(endpoint);
+
+        var buffer: [255:0]u8 = undefined;
+        const out = try socket.getSlice(.last_endpoint, &buffer);
+
+        try std.testing.expectEqualStrings(endpoint, out);
     }
 
     pub fn MonitorVersionedEvent(version: EventVersion) type {
