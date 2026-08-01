@@ -1,7 +1,7 @@
 .{
     .name = .zimq,
     .version = "0.0.0",
-    .minimum_zig_version = "0.14.0",
+    .minimum_zig_version = "0.17.0",
     .fingerprint = 0x95913b0ba0620d9f,
 
     .dependencies = .{
@@ -10,8 +10,8 @@
             .hash = "N-V-__8AAHUzRQAL7Ikh0_T9Nw0RdIaq1ntd_qhYGJA9AvC6",
         },
         .libsodium = .{
-            .url = "git+https://github.com/jedisct1/libsodium#95a428090fb7229567244649d901a2fe94c199bc",
-            .hash = "N-V-__8AADShbQDFITDXuHgXUDFntihecMPA_m3TVrMRxbU1",
+            .url = "git+https://github.com/jedisct1/libsodium#b81ab0783e084b92af870c464f2f56263632016c",
+            .hash = "N-V-__8AAEdmbwBf9USBQwfNcvJISjbdk3Z4yB5VklULLROQ",
             .lazy = true,
         },
     },

@@ -20,7 +20,7 @@ pub fn build(b: *std.Build) void {
         bool,
         "strip",
         "Omit debug symbols",
-    ) orelse (optimize != .Debug);
+    ) orelse (optimize != .debug);
 
     const curve = b.option(
         bool,
