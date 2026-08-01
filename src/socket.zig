@@ -530,10 +530,14 @@ pub const Socket = opaque {
         _ = try socket.get(.fd);
     }
 
-    pub fn getSlice(self: *Self, comptime option: GetOption, buffer: [:0]u8) GetError![:0]u8 {
+    pub fn getSlice(
+        self: *Self,
+        comptime option: GetOption,
+        buffer: GetOptionType(option),
+    ) GetError!GetOptionType(option) {
         const Output = GetOptionType(option);
 
-        if (Output != [:0]u8) {
+        if (Output != [:0]u8 and Output != []u8) {
             const error_message = std.fmt.comptimePrint(
                 "Internal error: {} is not expected",
                 .{Output},
@@ -554,16 +558,20 @@ pub const Socket = opaque {
             }
         }
 
-        var ptr: [*:0]u8 = buffer.ptr;
+        var ptr = buffer.ptr;
         var len: usize = buffer.len;
 
         if (zmq.zmq_getsockopt(self, @intFromEnum(option), @ptrCast(ptr), &len) == -1) {
             return mapGetError(errno());
         }
 
-        // libzmq also counts the null byte when write to `len`, hence the slice contains
-        // only `len - 1` characters
-        return ptr[0 .. len - 1 :0];
+        if (std.meta.sentinel(Output)) |sentinel| {
+            // libzmq also counts the sentinel byte when writing to `len`, hence the slice
+            // contains only `len - 1` bytes
+            return ptr[0 .. len - 1 :sentinel];
+        } else {
+            return ptr[0..len];
+        }
     }
     test getSlice {
         var context: *Context = try .init();
