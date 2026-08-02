@@ -1,9 +1,9 @@
 <!-- markdownlint-disable no-inline-html -->
-# Zig binding for ZeroMQ
+# Zig Binding for ZeroMQ
 
 <!--toc:start-->
 - [Zig binding for ZeroMQ](#zig-binding-for-zeromq)
-  - [How to use](#how-to-use)
+  - [How to Use](#how-to-use)
   - [Example](#example)
   - [Binding map](#binding-map)
 <!--toc:end-->
@@ -11,7 +11,7 @@
 A ZeroMQ wrapper that covers nearly 100% of ZeroMQ's API (skipped functions are
 to be deprecated or superseded).
 
-## How to use
+## How to Use
 
 1. Run the following command to add this project as a dependency
 
@@ -72,7 +72,7 @@ const zimq = @import("zimq");
 const zmq = zimq.zmq;
 ```
 
-## Binding map
+## Binding Map
 
 All the binding functions live in the `zimq` module.
 
