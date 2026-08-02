@@ -62,29 +62,33 @@ pub const Context = opaque {
         try context.shutdown();
     }
 
-    pub const SetError = error{ OptionInvalid, Unexpected };
+    pub const SetError = error{ ThreadNamePrefixTooLong, Unexpected };
     pub fn set(self: *Self, comptime option: SetOption, value: SetOptionType(option)) SetError!void {
         const Value = @TypeOf(value);
+
+        const error_message = std.fmt.comptimePrint(
+            "Implementation error: {} is not expected",
+            .{Value},
+        );
         const raw_value = switch (Value) {
             bool => @as(c_int, @intFromBool(value)),
             c_int, [:0]const u8 => value,
-            else => @compileError("Unrecognized type: " ++ @typeName(Value)),
+            else => @compileError(error_message),
         };
         const RawValue = @TypeOf(raw_value);
 
         const ptr, const size = switch (RawValue) {
             c_int => .{ &raw_value, @sizeOf(RawValue) },
             [:0]const u8 => .{ raw_value.ptr, raw_value.len + 1 },
-            else => @compileError("Unrecognized type: " ++ @typeName(RawValue)),
+            else => @compileError(error_message),
         };
-        if (zmq.zmq_ctx_set_ext(
-            self,
-            @intFromEnum(option),
-            ptr,
-            size,
-        ) == -1) {
+
+        if (option == .thread_name_prefix and size >= 16) {
+            return SetError.ThreadNamePrefixTooLong;
+        }
+
+        if (zmq.zmq_ctx_set_ext(self, @backingInt(option), ptr, size) == -1) {
             switch (errno()) {
-                zmq.EINVAL => return SetError.OptionInvalid,
                 else => |err| {
                     log("{s}\n", .{strerror(err)});
                     return SetError.Unexpected;
@@ -94,62 +98,28 @@ pub const Context = opaque {
     }
 
     pub const GetError = error{Unexpected};
-    // The underlying function `zmq_ctx_get_ext` does not set the actual length of passed in
-    // size pointer despite what the document says. Hence, the slice pointer passed in for
-    // .thread_name_prefix will not have its `len` updated.
-    pub fn get(self: *Self, comptime option: GetOption, out: *GetOptionType(option)) GetError!void {
-        const Out = @TypeOf(out);
+    pub fn get(self: *Self, comptime option: GetOption) GetError!GetOptionType(option) {
+        const Output = GetOptionType(option);
+        const error_message = std.fmt.comptimePrint(
+            "Implementation error: {} is not expected",
+            .{Output},
+        );
 
-        const result = get: switch (Out) {
-            *bool => {
-                var value: c_int = undefined;
-                var size: usize = @sizeOf(@TypeOf(value));
+        switch (Output) {
+            bool, c_int => {},
+            [:0]u8 => @compileError(std.fmt.comptimePrint(
+                "{} returns a slice, use `getSlice` to get its value",
+                .{option},
+            )),
+            else => @compileError(error_message),
+        }
 
-                const result = zmq.zmq_ctx_get_ext(
-                    self,
-                    @intFromEnum(option),
-                    &value,
-                    &size,
-                );
-                if (result != -1) {
-                    out.* = value != 0;
-                }
+        const Value = if (Output == bool) c_int else Output;
 
-                break :get result;
-            },
-            *[:0]u8 => {
-                const result = zmq.zmq_ctx_get_ext(
-                    self,
-                    @intFromEnum(option),
-                    out.ptr,
-                    &out.len,
-                );
+        var output: Value = undefined;
+        var size: usize = @sizeOf(Value);
 
-                // There is a bug in libzmq's implementation that does not
-                // actually set the length of the output so it has to be done
-                // manually
-                if (result == 0) {
-                    out.len = std.mem.indexOfSentinel(u8, 0, out.ptr);
-                }
-
-                break :get result;
-            },
-            *c_int => {
-                var size: usize = @sizeOf(@TypeOf(out.*));
-
-                const result = zmq.zmq_ctx_get_ext(
-                    self,
-                    @intFromEnum(option),
-                    out,
-                    &size,
-                );
-
-                break :get result;
-            },
-            else => @compileError("Unrecognized type: " ++ @typeName(Out)),
-        };
-
-        if (result == -1) {
+        if (zmq.zmq_ctx_get_ext(self, @backingInt(option), &output, &size) == -1) {
             switch (errno()) {
                 else => |err| {
                     log("{s}\n", .{strerror(err)});
@@ -157,6 +127,45 @@ pub const Context = opaque {
                 },
             }
         }
+
+        return if (Output == bool) output != 0 else output;
+    }
+    pub fn getSlice(
+        self: *Self,
+        comptime option: GetOption,
+        buffer: [:0]u8,
+    ) GetError![:0]u8 {
+        const Output = GetOptionType(option);
+        const error_message = std.fmt.comptimePrint(
+            "Implementation error: {} is not expected",
+            .{Output},
+        );
+
+        switch (Output) {
+            bool, c_int => @compileError(std.fmt.comptimePrint(
+                "{} returns a scalar, use `get` to get its value",
+                .{option},
+            )),
+            [:0]u8 => {},
+            else => @compileError(error_message),
+        }
+
+        var dummy_len = buffer.len;
+        if (zmq.zmq_ctx_get_ext(self, @backingInt(option), buffer.ptr, &dummy_len) == -1) {
+            switch (errno()) {
+                else => |err| {
+                    log("{s}\n", .{strerror(err)});
+                    return GetError.Unexpected;
+                },
+            }
+        }
+
+        // There is a bug in libzmq's implementation that does not
+        // actually set the length of the output so it has to be done
+        // manually
+        const len = std.mem.findSentinel(u8, 0, buffer.ptr);
+
+        return buffer[0..len :0];
     }
 
     test set {
@@ -165,30 +174,22 @@ pub const Context = opaque {
 
         try context.set(.blocky, true);
         try context.set(.thread_name_prefix, "somename");
-
-        var blocky: bool = undefined;
-        try context.get(.blocky, &blocky);
-        try std.testing.expect(blocky);
-
-        var buffer: [255:0]u8 = undefined;
-        var thread_name: [:0]u8 = &buffer;
-        try context.get(.thread_name_prefix, &thread_name);
-        try std.testing.expectEqualSentinel(u8, 0, "somename", thread_name);
     }
     test get {
         var context: *Self = try .init();
         defer context.deinit();
 
         try context.set(.blocky, true);
-        try context.set(.thread_name_prefix, "somename");
 
-        var blocky: bool = undefined;
-        try context.get(.blocky, &blocky);
+        const blocky: bool = try context.get(.blocky);
         try std.testing.expect(blocky);
 
-        var buffer: [255:0]u8 = undefined;
-        var thread_name: [:0]u8 = &buffer;
-        try context.get(.thread_name_prefix, &thread_name);
-        try std.testing.expectEqualSentinel(u8, 0, "somename", thread_name);
+        const thread_name_prefix = "0123456789ABCD";
+        try context.set(.thread_name_prefix, thread_name_prefix);
+        var buffer: [15:0]u8 = undefined;
+        try std.testing.expectEqualStrings(
+            thread_name_prefix,
+            try context.getSlice(.thread_name_prefix, &buffer),
+        );
     }
 };
