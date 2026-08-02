@@ -33,7 +33,7 @@ pub const Socket = opaque {
         Unexpected,
     };
     pub fn init(context: *Context, socket_type: Type) InitError!*Self {
-        if (zmq.zmq_socket(context, @intFromEnum(socket_type))) |handle| {
+        if (zmq.zmq_socket(context, @backingInt(socket_type))) |handle| {
             return @ptrCast(handle);
         } else {
             return switch (errno()) {
@@ -436,7 +436,7 @@ pub const Socket = opaque {
                 .@"packed" => @as(Struct.backing_integer.?, @bitCast(value)),
                 else => @compileError("Unrecognized type: " ++ @typeName(Value)),
             },
-            .@"enum" => @intFromEnum(value),
+            .@"enum" => @backingInt(value),
             .int, .pointer => value,
             else => @compileError("Unrecognized type: " ++ @typeName(Value)),
         };
@@ -448,7 +448,7 @@ pub const Socket = opaque {
             else => @compileError("Unrecognized type: " ++ @typeName(RawValue)),
         };
 
-        if (zmq.zmq_setsockopt(self, @intFromEnum(option), ptr, size) == 0) {
+        if (zmq.zmq_setsockopt(self, @backingInt(option), ptr, size) == 0) {
             return;
         }
 
@@ -561,7 +561,7 @@ pub const Socket = opaque {
         var ptr = buffer.ptr;
         var len: usize = buffer.len;
 
-        if (zmq.zmq_getsockopt(self, @intFromEnum(option), @ptrCast(ptr), &len) == -1) {
+        if (zmq.zmq_getsockopt(self, @backingInt(option), @ptrCast(ptr), &len) == -1) {
             return mapGetError(errno());
         }
 
@@ -676,8 +676,8 @@ pub const Socket = opaque {
             self,
             endpoint.ptr,
             @bitCast(event),
-            @intFromEnum(version),
-            @intFromEnum(monitor_type),
+            @backingInt(version),
+            @backingInt(monitor_type),
         )) {
             -1 => switch (errno()) {
                 zmq.ETERM => MonitorError.ContextInvalid,

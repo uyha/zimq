@@ -227,8 +227,8 @@ pub fn PropertyType(property: Property) type {
 }
 pub fn get(self: *const Self, comptime property: Property) PropertyType(property) {
     return switch (property) {
-        .more, .shared => zmq.zmq_msg_get(&self.message, @intFromEnum(property)) != 0,
-        .source_fd => zmq.zmq_msg_get(&self.message, @intFromEnum(property)),
+        .more, .shared => zmq.zmq_msg_get(&self.message, @backingInt(property)) != 0,
+        .source_fd => zmq.zmq_msg_get(&self.message, @backingInt(property)),
     };
 }
 
