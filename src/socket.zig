@@ -422,7 +422,6 @@ pub const Socket = opaque {
     }
 
     pub const SetError = error{
-        OptionInvalid,
         ContextInvalid,
         SocketInvalid,
         Interrupted,
@@ -453,7 +452,6 @@ pub const Socket = opaque {
         }
 
         return switch (errno()) {
-            zmq.EINVAL => SetError.OptionInvalid,
             zmq.ETERM => SetError.ContextInvalid,
             zmq.ENOTSOCK => SetError.SocketInvalid,
             zmq.EINTR => SetError.Interrupted,
@@ -465,28 +463,15 @@ pub const Socket = opaque {
     }
 
     pub const GetError = error{
-        OptionInvalid,
         ContextInvalid,
         SocketInvalid,
         Interrupted,
         Unexpected,
     };
-    fn mapGetError(raw: c_int) GetError {
-        return switch (raw) {
-            zmq.EINVAL => GetError.OptionInvalid,
-            zmq.ETERM => GetError.ContextInvalid,
-            zmq.ENOTSOCK => GetError.SocketInvalid,
-            zmq.EINTR => GetError.Interrupted,
-            else => |err| {
-                log("{s}\n", .{strerror(err)});
-                return GetError.Unexpected;
-            },
-        };
-    }
     pub fn get(self: *Self, comptime option: GetOption) GetError!GetOptionType(option) {
         const Output = GetOptionType(option);
         const error_message = std.fmt.comptimePrint(
-            "Internal error: {} is not expected",
+            "Implementation error: {} is not expected",
             .{Output},
         );
 
@@ -514,8 +499,16 @@ pub const Socket = opaque {
         var output: Value = undefined;
         var size: usize = @sizeOf(Value);
 
-        if (zmq.zmq_getsockopt(self, @intFromEnum(option), &output, &size) == -1) {
-            return mapGetError(errno());
+        if (zmq.zmq_getsockopt(self, @backingInt(option), &output, &size) == -1) {
+            return switch (errno()) {
+                zmq.ETERM => GetError.ContextInvalid,
+                zmq.ENOTSOCK => GetError.SocketInvalid,
+                zmq.EINTR => GetError.Interrupted,
+                else => |err| {
+                    log("{s}\n", .{strerror(err)});
+                    return GetError.Unexpected;
+                },
+            };
         }
 
         return if (Output == bool) output != 0 else output;
@@ -530,16 +523,17 @@ pub const Socket = opaque {
         _ = try socket.get(.fd);
     }
 
+    pub const GetSliceError = GetError || error{BufferTooSmall};
     pub fn getSlice(
         self: *Self,
         comptime option: GetOption,
         buffer: GetOptionType(option),
-    ) GetError!GetOptionType(option) {
+    ) GetSliceError!GetOptionType(option) {
         const Output = GetOptionType(option);
 
         if (Output != [:0]u8 and Output != []u8) {
             const error_message = std.fmt.comptimePrint(
-                "Internal error: {} is not expected",
+                "Implementation error: {} is not expected",
                 .{Output},
             );
             const use_get_message = std.fmt.comptimePrint(
@@ -562,7 +556,16 @@ pub const Socket = opaque {
         var len: usize = buffer.len;
 
         if (zmq.zmq_getsockopt(self, @backingInt(option), @ptrCast(ptr), &len) == -1) {
-            return mapGetError(errno());
+            return switch (errno()) {
+                zmq.EINVAL => GetSliceError.BufferTooSmall,
+                zmq.ETERM => GetSliceError.ContextInvalid,
+                zmq.ENOTSOCK => GetSliceError.SocketInvalid,
+                zmq.EINTR => GetSliceError.Interrupted,
+                else => |err| {
+                    log("{s}\n", .{strerror(err)});
+                    return GetSliceError.Unexpected;
+                },
+            };
         }
 
         if (std.meta.sentinel(Output)) |sentinel| {
