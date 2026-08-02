@@ -234,6 +234,7 @@ pub const Socket = opaque {
         send_more: bool = false,
         _padding: u30 = 0,
 
+        pub const none: SendFlags = .{};
         pub const noblock: SendFlags = .{ .dont_wait = true };
         pub const more: SendFlags = .{ .send_more = true };
         pub const morenoblock: SendFlags = .{ .dont_wait = true, .send_more = true };
@@ -349,6 +350,7 @@ pub const Socket = opaque {
         dont_wait: bool = false,
         _padding: u31 = 0,
 
+        pub const none: RecvFlags = .{};
         pub const noblock: RecvFlags = .{ .dont_wait = true };
     };
     pub const RecvError = error{

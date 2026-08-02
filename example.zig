@@ -12,10 +12,10 @@ pub fn main() !void {
     try push.connect("inproc://#1");
 
     try push.sendSlice("hello", .more);
-    try push.sendSlice("hello", .{});
+    try push.sendSlice("hello", .none);
 
     var message: zimq.Message = .empty();
-    _ = try pull.recvMsg(&message, .{});
+    _ = try pull.recvMsg(&message, .none);
 
     std.debug.print("{s}\n", .{message.slice()});
 
