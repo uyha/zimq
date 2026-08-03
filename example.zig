@@ -17,19 +17,24 @@ pub fn main() !void {
     var message: zimq.Message = .empty();
     _ = try pull.recvMsg(&message, .none);
 
-    std.debug.print("{s}\n", .{message.slice()});
+    std.debug.print("Message: {s}\n", .{message.slice()});
+    std.debug.print("More Frame: {}\n", .{message.more()});
 
     var routing_id_buffer: [255]u8 = @splat(5);
     try pull.set(.routing_id, "someroutingid");
-    std.debug.print("{s}\n", .{try pull.getSlice(.routing_id, &routing_id_buffer)});
+    std.debug.print(
+        "Routing ID: {s}\n",
+        .{try pull.getSlice(.routing_id, &routing_id_buffer)},
+    );
 
     var endpoint_buffer: [20:0]u8 = @splat(0xAA);
-    std.debug.print("{s}\n", .{try pull.getSlice(.last_endpoint, &endpoint_buffer)});
+    std.debug.print(
+        "Last Endpoint: {s}\n",
+        .{try pull.getSlice(.last_endpoint, &endpoint_buffer)},
+    );
 
-    std.debug.print("{}\n", .{try pull.get(.backlog)});
-
-    std.debug.print("{}\n", .{try pull.get(.rcvmore)});
-    std.debug.print("{}\n", .{message.more()});
+    std.debug.print("Backlog: {}\n", .{try pull.get(.backlog)});
+    std.debug.print("More Frame: {}\n", .{try pull.get(.rcvmore)});
 }
 
 const std = @import("std");
