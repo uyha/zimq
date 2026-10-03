@@ -1,6 +1,3 @@
-const std = @import("std");
-const Build = std.Build;
-
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
@@ -454,16 +451,20 @@ fn buildLibzmq(
     options: Options,
 ) *std.Build.Module {
     const upstream = b.dependency("libzmq", .{});
+    const translate_c = b.dependency("translate_c", .{});
 
-    const translate = b.addTranslateC(.{
-        .root_source_file = upstream.path(
+    const translator: Translator = .init(translate_c, .{
+        .c_source_file = upstream.path(
             b.pathJoin(&.{ "include", "zmq.h" }),
         ),
         .target = target,
         .optimize = optimize,
     });
 
-    const module = translate.createModule();
+    const module = b.createModule(.{
+        .target = target,
+        .optimize = optimize,
+    });
     module.link_libc = true;
     module.link_libcpp = true;
     module.strip = strip;
@@ -473,8 +474,7 @@ fn buildLibzmq(
     });
     b.installArtifact(library);
 
-    const header = translate.addModule("zmq");
-    header.linkLibrary(library);
+    translator.mod.linkLibrary(library);
 
     {
         var macros: std.StringArrayHashMapUnmanaged([]const u8) = .empty;
@@ -496,7 +496,7 @@ fn buildLibzmq(
 
         var iter = macros.iterator();
         while (iter.next()) |entry| {
-            translate.defineCMacro(entry.key_ptr.*, entry.value_ptr.*);
+            translator.defineCMacro(entry.key_ptr.*, entry.value_ptr.*);
             module.addCMacro(entry.key_ptr.*, entry.value_ptr.*);
         }
     }
@@ -587,5 +587,10 @@ fn buildLibzmq(
         .files = &zmq_source_files,
     });
 
-    return header;
+    return translator.mod;
 }
+
+const std = @import("std");
+const Build = std.Build;
+
+const Translator = @import("translate_c").Translator;
